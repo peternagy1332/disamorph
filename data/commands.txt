@@ -1,0 +1,2 @@
+cat ./*.new | cut -f5 | grep -oh '^[a-z]*' | sort | uniq > morphemes.txt
+grep -oh '\[[^]]*\]' ./* | sort | uniq -c > tags.txt
