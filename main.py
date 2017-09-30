@@ -1,39 +1,18 @@
-import glob
 import os
 from collections import namedtuple
-import pandas as pd
-import numpy as np
 import tensorflow as tf
 from tensorflow.python.layers import core as layers_core
-import re
+from train_data_processor import TrainDataProcessor
+from config import ModelConfiguration, Dataset
 
 
 class MorphDisamTrainer(object):
-    def __init__(self, train_files_paths, config):
-        self.__config = config
+    def __init__(self, model_configuration, vocabulary, max_source_sequence_length, max_target_sequence_length):
+        self.__config = model_configuration
 
-        self.__vocabulary = self.__read_features_to_vocabulary(train_files_paths.tags, train_files_paths.roots)
-        self.__corpus_dataframe = self.__read_corpus_dataframe(train_files_paths.corpus)
-
-    def __read_features_to_vocabulary(self, file_tags, file_roots):
-        features = []
-        with open(file_tags, encoding='utf-8') as f: features.extend(f.read().splitlines())
-        with open(file_roots, encoding='utf-8') as f: features.extend(f.read().splitlines())
-        return dict(zip(features, range(self.__config.vocabulary_start_index,
-                                        len(features) + self.__config.vocabulary_start_index)))
-
-    def __read_corpus_dataframe(self, path_corpuses):
-        return pd.concat(
-            (pd.read_csv(f, sep='\t', usecols=[4], skip_blank_lines=True, header=None, nrows=self.__config.nrows,
-                         names=['analysis'])
-             for f in glob.glob(path_corpuses)), ignore_index=True) \
-            .applymap(lambda analysis: self.__lookup_analysis_to_list(analysis))
-
-    def __lookup_analysis_to_list(self, analysis):
-        root = re.search(r'\w+', analysis, re.UNICODE).group(0)
-        tags = re.findall(r'\[[^]]*\]', analysis, re.UNICODE)
-        return [self.__vocabulary.get(root, self.__config.marker_unknown)] + [
-            self.__vocabulary.get(tag, self.__config.marker_unknown) for tag in tags]
+        self.__vocabulary = vocabulary
+        self.__max_source_sequence_length = max_source_sequence_length
+        self.__max_target_sequence_length = max_target_sequence_length
 
     def __create_placeholders(self):
         Placeholders = namedtuple('Placeholders', ['encoder_inputs', 'decoder_inputs', 'decoder_outputs'])
@@ -151,125 +130,42 @@ class MorphDisamTrainer(object):
 
                     print('Epoch\t',epoch_id,'\t','Losses: ',losses)
 
-    def generate_batches(self):
-
-        source_sequences = []
-        target_sequences = []
-
-        self.__max_source_sequence_length = 0
-        self.__max_target_sequence_length = 0
-
-        # Gathering examples in list format
-        for analysis_id in range(self.__corpus_dataframe.shape[0] - self.__config.window_length):
-            source_sequence = []
-
-            source_window_dataframe = self.__corpus_dataframe.loc[
-                                      analysis_id:analysis_id + self.__config.window_length - 1]
-
-            for source_row in source_window_dataframe['analysis']:
-                source_sequence.extend(source_row + [self.__config.marker_analysis_divider])
-
-            target_sequence = self.__corpus_dataframe.loc[analysis_id + self.__config.window_length]['analysis']
-
-            source_sequence.extend([target_sequence[0], self.__config.marker_end_of_sentence])
-
-            if len(source_sequence) > self.__max_source_sequence_length:
-                self.__max_source_sequence_length = len(source_sequence)
-
-            if len(target_sequence) > self.__max_target_sequence_length:
-                self.__max_target_sequence_length = len(target_sequence)
-
-            # Lists constructed
-            source_sequences.append(source_sequence)
-            target_sequences.append(target_sequence)
-
-        # Padding lists
-        for i, source_sequence in enumerate(source_sequences):
-            source_sequences[i] = np.lib.pad(source_sequence,
-                                             (0, self.__max_source_sequence_length - len(source_sequence)),
-                                             'constant', constant_values=self.__config.marker_padding)
-
-        for i, target_sequence in enumerate(target_sequences):
-            target_sequences[i] = np.lib.pad(target_sequence,
-                                             (0, self.__max_target_sequence_length - len(target_sequence)),
-                                             'constant', constant_values=self.__config.marker_padding)
-
-        source_input_matrix = np.matrix(source_sequences, dtype=np.int32)
-        target_output_matrix = np.matrix(target_sequences, dtype=np.int32)
-        target_input_matrix = np.roll(target_output_matrix, 1, axis=1)
-        target_input_matrix[:, 0] = np.full((target_input_matrix.shape[0], 1), self.__config.marker_start_of_sentence, dtype=np.int32)
-
-        # Chunking into batches
-        source_input_batches = [source_input_matrix[i:i + self.__config.batch_size] for i in
-                                range(source_input_matrix.shape[0] // self.__config.batch_size)]
-
-        target_input_batches = [target_input_matrix[i:i + self.__config.batch_size] for i in
-                                range(target_input_matrix.shape[0] // self.__config.batch_size)]
-
-        target_output_batches = [target_output_matrix[i:i + self.__config.batch_size] for i in
-                                range(target_output_matrix.shape[0] // self.__config.batch_size)]
-
-        Dataset = namedtuple('Dataset', ['source_input_batches', 'target_input_batches', 'target_output_batches'])
-
-        return Dataset(
-            source_input_batches=source_input_batches,
-            target_input_batches=target_input_batches,
-            target_output_batches=target_output_batches
-        )
-
 
 
 def main():
-    TrainFilesPaths = namedtuple('TrainFilesPaths', ['tags', 'roots', 'corpus'])
+    # Should be loaded from YAML
+    model_configuration = ModelConfiguration()
+    model_configuration.embedding_size=10
+    model_configuration.num_cells=32
+    model_configuration.batch_size=6
+    model_configuration.window_length=5
+    model_configuration.marker_padding=0
+    model_configuration.marker_analysis_divider=1
+    model_configuration.marker_start_of_sentence=2
+    model_configuration.marker_end_of_sentence=3
+    model_configuration.marker_unknown=4
+    model_configuration.vocabulary_start_index=5
+    model_configuration.nrows=5
+    model_configuration.max_gradient_norm=1  # 1..5
+    model_configuration.learning_rate=1
+    model_configuration.train_epochs=100
+    model_configuration.train_files_tags=os.path.join('data', 'tags.txt')
+    model_configuration.train_files_roots=os.path.join('data', 'roots.txt')
+    model_configuration.train_files_corpus=os.path.join('data', 'szeged', '*')
 
-    Config = namedtuple('Config', ['embedding_size',
-                                   'source_sequence_length',
-                                   'target_sequence_length',
-                                   'num_cells',
-                                   'batch_size',
-                                   'window_length',
-                                   'marker_padding',
-                                   'marker_analysis_divider',
-                                   'marker_start_of_sentence',
-                                   'marker_end_of_sentence',
-                                   'marker_unknown',
-                                   'vocabulary_start_index',
-                                   'nrows',
-                                   'max_gradient_norm',
-                                   'learning_rate',
-                                   'train_epochs'
-                                   ])
+    # Loading train data
+    train_data_processor = TrainDataProcessor(model_configuration)
+    dataset, max_source_sequence_length, max_target_sequence_length, vocabulary = train_data_processor.process_dataset()
 
-    morph_disam_trainer = MorphDisamTrainer(
-        TrainFilesPaths(
-            tags=os.path.join('data', 'tags.txt'),
-            roots=os.path.join('data', 'roots.txt'),
-            corpus=os.path.join('data', 'szeged', '*')
-        ),
-        Config(
-            embedding_size=10,
-            source_sequence_length=50,
-            target_sequence_length=10,
-            num_cells=32,
-            batch_size=6,
-            window_length=5,
-            marker_padding=0,
-            marker_analysis_divider=1,
-            marker_start_of_sentence=2,
-            marker_end_of_sentence=3,
-            marker_unknown=4,
-            vocabulary_start_index=5,
-            nrows=5,
-            max_gradient_norm=1,  # 1..5
-            learning_rate=1,
-            train_epochs=100
-        )
-    )
-
-    dataset = morph_disam_trainer.generate_batches()
+    # Building graph
+    morph_disam_trainer = MorphDisamTrainer(model_configuration,
+                                            vocabulary,
+                                            max_source_sequence_length,
+                                            max_target_sequence_length)
 
     placeholders, logits = morph_disam_trainer.create_network()
 
+    # Begin training
     morph_disam_trainer.train(placeholders, logits, dataset)
 
 
