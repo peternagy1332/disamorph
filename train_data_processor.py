@@ -24,8 +24,14 @@ class TrainDataProcessor(object):
         with open(file_roots, encoding='utf-8') as f: features.extend(f.read().splitlines())
         vocabulary = dict(zip(features, range(self.__config.vocabulary_start_index,
                                         len(features) + self.__config.vocabulary_start_index)))
-        
+
         inverse_vocabulary = {v: k for k, v in vocabulary.items()}
+
+        inverse_vocabulary[self.__config.marker_unknown] = '<UNK>'
+        inverse_vocabulary[self.__config.marker_padding] = '<PAD>'
+        inverse_vocabulary[self.__config.marker_end_of_sentence] = '<EOS>'
+        inverse_vocabulary[self.__config.marker_start_of_sentence] = '<SOS>'
+        inverse_vocabulary[self.__config.marker_analysis_divider] = '<DIV>'
         
         return vocabulary, inverse_vocabulary
 

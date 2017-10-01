@@ -1,6 +1,6 @@
 from config import ModelConfiguration
-from inference import MorphDisamInference
-from model import MorphDisamModel
+from model_inference import MorphDisamInference
+from model_train import BuildTrainModel
 from train_data_processor import TrainDataProcessor
 import numpy as np
 
@@ -13,10 +13,8 @@ def main():
 
     dataset_metadata = train_data_processor.load_dataset_metadata()
 
-    print('Dataset metadata: ', dataset_metadata)
-
     # Building graph
-    morph_disam_model = MorphDisamModel(model_configuration,
+    morph_disam_model = BuildTrainModel(model_configuration,
                                         train_data_processor.vocabulary,
                                         dataset_metadata.max_source_sequence_length,
                                         dataset_metadata.max_target_sequence_length)
@@ -24,9 +22,9 @@ def main():
     model = morph_disam_model.create_model()
 
     # Begin training
-    morph_disam_inference = MorphDisamInference(model_configuration, model)
+    morph_disam_inference = MorphDisamInference(model_configuration, model, train_data_processor.inverse_vocabulary)
 
-    to_predict = np.ndarray([30943, 111, 94, 1, 15481, 18, 115, 1, 49157, 1, 5902, 70, 1, 45142, 18, 115, 1, 5902, 3, 0, 0, 0, 0])
+    to_predict = np.matrix([30943, 111, 94, 1, 15481, 18, 115, 1, 49157, 1, 5902, 70, 1, 45142, 18, 115, 1, 5902, 3, 0, 0, 0, 0], dtype=np.int32)
 
     print(morph_disam_inference.infer(to_predict))
 

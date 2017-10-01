@@ -3,13 +3,37 @@ import tensorflow as tf
 from tensorflow.python.layers import core as layers_core
 
 
-class MorphDisamModel(object):
+class BuildTrainModel(object):
     def __init__(self, model_configuration, vocabulary, max_source_sequence_length, max_target_sequence_length):
         self.__config = model_configuration
 
         self.__vocabulary = vocabulary
         self.__max_source_sequence_length = max_source_sequence_length
         self.__max_target_sequence_length = max_target_sequence_length
+
+    def create_model(self):
+
+        placeholders = self.__create_placeholders()
+
+        embedding_matrix = self.__create_embedding()
+
+        encoder_outputs, encoder_state = self.__create_encoder(embedding_matrix, placeholders.encoder_inputs)
+
+        logits = self.__create_decoder(embedding_matrix, encoder_state, placeholders)
+
+        Model = namedtuple('Model', ['placeholders', 'logits'])
+
+        return Model(
+            placeholders=placeholders,
+            logits=logits
+        )
+
+    def __create_embedding(self):
+        with tf.variable_scope('embedding'):
+            embedding_matrix = tf.get_variable('embedding_matrix',
+                                               [len(self.__vocabulary), self.__config.embedding_size],
+                                               dtype=tf.float32)
+            return embedding_matrix
 
     def __create_placeholders(self):
         Placeholders = namedtuple('Placeholders', ['encoder_inputs', 'decoder_inputs', 'decoder_outputs'])
@@ -71,27 +95,3 @@ class MorphDisamModel(object):
             logits = final_outputs.rnn_output
 
             return logits
-
-    def __create_embedding(self):
-        with tf.variable_scope('embedding'):
-            embedding_matrix = tf.get_variable('embedding_matrix',
-                                               [len(self.__vocabulary), self.__config.embedding_size],
-                                               dtype=tf.float32)
-            return embedding_matrix
-
-    def create_model(self):
-
-        placeholders = self.__create_placeholders()
-
-        embedding_matrix = self.__create_embedding()
-
-        encoder_outputs, encoder_state = self.__create_encoder(embedding_matrix, placeholders.encoder_inputs)
-
-        logits = self.__create_decoder(embedding_matrix, encoder_state, placeholders)
-
-        Model = namedtuple('Model', ['placeholders', 'logits'])
-
-        return Model(
-            placeholders=placeholders,
-            logits=logits
-        )

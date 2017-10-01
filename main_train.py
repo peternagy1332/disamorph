@@ -1,5 +1,5 @@
 from config import ModelConfiguration
-from model import MorphDisamModel
+from model_train import BuildTrainModel
 from train import MorphDisamTrainer
 from train_data_processor import TrainDataProcessor
 
@@ -14,7 +14,7 @@ def main():
     train_data_processor.save_dataset_metadata()
 
     # Building graph
-    morph_disam_model = MorphDisamModel(model_configuration,
+    morph_disam_model = BuildTrainModel(model_configuration,
                                         train_data_processor.vocabulary,
                                         max_source_sequence_length,
                                         max_target_sequence_length)
