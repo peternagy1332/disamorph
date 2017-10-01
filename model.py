@@ -79,7 +79,7 @@ class MorphDisamModel(object):
                                                dtype=tf.float32)
             return embedding_matrix
 
-    def create_network(self):
+    def create_model(self):
 
         placeholders = self.__create_placeholders()
 
@@ -89,4 +89,9 @@ class MorphDisamModel(object):
 
         logits = self.__create_decoder(embedding_matrix, encoder_state, placeholders)
 
-        return placeholders, logits
+        Model = namedtuple('Model', ['placeholders', 'logits'])
+
+        return Model(
+            placeholders=placeholders,
+            logits=logits
+        )

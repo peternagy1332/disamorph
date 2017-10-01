@@ -1,24 +1,33 @@
 import glob
+from collections import namedtuple
+
 import pandas as pd
 import numpy as np
 import re
-from config import Dataset
+
+import yaml
+
 
 class TrainDataProcessor(object):
     def __init__(self, model_configuration):
         self.__config = model_configuration
 
-        self.__vocabulary = self.__read_features_to_vocabulary(self.__config.train_files_tags,
-                                                               self.__config.train_files_roots)
+        self.vocabulary, self.inverse_vocabulary = self.__read_features_to_vocabularies(
+            self.__config.train_files_tags,
+            self.__config.train_files_roots)
 
         self.__corpus_dataframe = self.__read_corpus_dataframe(self.__config.train_files_corpus)
 
-    def __read_features_to_vocabulary(self, file_tags, file_roots):
+    def __read_features_to_vocabularies(self, file_tags, file_roots):
         features = []
         with open(file_tags, encoding='utf-8') as f: features.extend(f.read().splitlines())
         with open(file_roots, encoding='utf-8') as f: features.extend(f.read().splitlines())
-        return dict(zip(features, range(self.__config.vocabulary_start_index,
+        vocabulary = dict(zip(features, range(self.__config.vocabulary_start_index,
                                         len(features) + self.__config.vocabulary_start_index)))
+        
+        inverse_vocabulary = {v: k for k, v in vocabulary.items()}
+        
+        return vocabulary, inverse_vocabulary
 
     def __read_corpus_dataframe(self, path_corpuses):
         return pd.concat(
@@ -30,8 +39,8 @@ class TrainDataProcessor(object):
     def __lookup_analysis_to_list(self, analysis):
         root = re.search(r'\w+', analysis, re.UNICODE).group(0)
         tags = re.findall(r'\[[^]]*\]', analysis, re.UNICODE)
-        return [self.__vocabulary.get(root, self.__config.marker_unknown)] + [
-            self.__vocabulary.get(tag, self.__config.marker_unknown) for tag in tags]
+        return [self.vocabulary.get(root, self.__config.marker_unknown)] + [
+            self.vocabulary.get(tag, self.__config.marker_unknown) for tag in tags]
 
     def process_dataset(self):
 
@@ -81,15 +90,39 @@ class TrainDataProcessor(object):
         target_input_matrix = np.roll(target_output_matrix, 1, axis=1)
         target_input_matrix[:, 0] = np.full((target_input_matrix.shape[0], 1), self.__config.marker_start_of_sentence, dtype=np.int32)
 
-        dataset = Dataset()
-        
-        dataset.source_input_batches=[source_input_matrix[i:i + self.__config.batch_size] for i in
-                                      range(source_input_matrix.shape[0] // self.__config.batch_size)]
-        
-        dataset.target_input_batches=[target_input_matrix[i:i + self.__config.batch_size] for i in
-                                      range(target_input_matrix.shape[0] // self.__config.batch_size)]
-        
-        dataset.target_output_batches=[target_output_matrix[i:i + self.__config.batch_size] for i in
-                                       range(target_output_matrix.shape[0] // self.__config.batch_size)]
+        Dataset = namedtuple('Dataset', ['source_input_batches', 'target_input_batches', 'target_output_batches'])
 
-        return dataset, max_source_sequence_length, max_target_sequence_length, self.__vocabulary
+        dataset = Dataset(
+            source_input_batches=[source_input_matrix[i:i + self.__config.batch_size] for i in
+                                      range(source_input_matrix.shape[0] // self.__config.batch_size)],
+            target_input_batches=[target_input_matrix[i:i + self.__config.batch_size] for i in
+                                      range(target_input_matrix.shape[0] // self.__config.batch_size)],
+            target_output_batches=[target_output_matrix[i:i + self.__config.batch_size] for i in
+                                       range(target_output_matrix.shape[0] // self.__config.batch_size)]
+        )
+
+        self.__max_source_sequence_length = max_source_sequence_length
+        self.__max_target_sequence_length = max_target_sequence_length
+
+        return dataset, max_source_sequence_length, max_target_sequence_length
+
+    def save_dataset_metadata(self):
+        print('Saving dataset metadata to ', self.__config.train_files_dataset_metadata)
+
+        dataset_metadata = dict(
+            max_source_sequence_length = self.__max_source_sequence_length,
+            max_target_sequence_length = self.__max_target_sequence_length
+        )
+
+        with open(self.__config.train_files_dataset_metadata, 'w', encoding='utf8') as outfile:
+            yaml.dump(dataset_metadata, outfile, default_flow_style=False)
+
+    def load_dataset_metadata(self):
+        print('Loading dataset metadata from ', self.__config.train_files_dataset_metadata)
+
+        with open(self.__config.train_files_dataset_metadata, 'r', encoding='utf8') as infile:
+            try:
+                loaded_dict = yaml.load(infile)
+                return namedtuple('DatasetMetadata', loaded_dict.keys())(**loaded_dict)
+            except yaml.YAMLError as e:
+                print(e)
