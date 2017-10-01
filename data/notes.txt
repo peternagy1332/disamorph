@@ -1,6 +1,0 @@
-1. error when decoding utf8 encoded file:
-    [Cond.1Sg›2]
-    [Prs.1Sg›2]
-    [Pst.1Sg›2]
-    [Sbjv.1Sg›2]
-    › is a non-unicode character
