@@ -107,6 +107,10 @@ class TrainDataProcessor(object):
                                        range(target_output_matrix.shape[0] // self.__config.batch_size)]
         )
 
+        print(dataset.source_input_batches[0])
+        print(dataset.target_input_batches[0])
+        print(dataset.target_output_batches[0])
+
         DatasetMetadata = namedtuple('DatasetMetadata', ['max_source_sequence_length', 'max_target_sequence_length'])
 
         self.__dataset_metadata = DatasetMetadata(
