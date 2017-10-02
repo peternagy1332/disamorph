@@ -4,34 +4,38 @@ from tensorflow.python.layers import core as layers_core
 
 
 class BuildTrainModel(object):
-    def __init__(self, model_configuration, vocabulary, max_source_sequence_length, max_target_sequence_length):
+    def __init__(self, model_configuration, vocabulary, inverse_vocabulary, dataset_metadata):
         self.__config = model_configuration
-
         self.__vocabulary = vocabulary
-        self.__max_source_sequence_length = max_source_sequence_length
-        self.__max_target_sequence_length = max_target_sequence_length
+        self.__inverse_vocabulary = inverse_vocabulary
+        self.__dataset_metadata = dataset_metadata
+
+        self.__train_graph = tf.Graph()
+
+    def get_train_graph(self):
+        return self.__train_graph
 
     def create_model(self):
+        with self.__train_graph.as_default():
+            placeholders = self.__create_placeholders()
 
-        placeholders = self.__create_placeholders()
+            embedding_matrix = self.create_embedding()
 
-        embedding_matrix = self.__create_embedding()
+            encoder_outputs, encoder_state = self.create_encoder(embedding_matrix, placeholders.encoder_inputs)
 
-        encoder_outputs, encoder_state = self.__create_encoder(embedding_matrix, placeholders.encoder_inputs)
+            logits = self.__create_decoder(embedding_matrix, encoder_state, placeholders)
 
-        logits = self.__create_decoder(embedding_matrix, encoder_state, placeholders)
+            Model = namedtuple('Model', ['placeholders', 'logits'])
 
-        Model = namedtuple('Model', ['placeholders', 'logits'])
+            return Model(
+                placeholders=placeholders,
+                logits=logits
+            )
 
-        return Model(
-            placeholders=placeholders,
-            logits=logits
-        )
-
-    def __create_embedding(self):
+    def create_embedding(self):
         with tf.variable_scope('embedding'):
             embedding_matrix = tf.get_variable('embedding_matrix',
-                                               [len(self.__vocabulary), self.__config.embedding_size],
+                                               [len(self.__inverse_vocabulary), self.__config.embedding_size],
                                                dtype=tf.float32)
             return embedding_matrix
 
@@ -39,17 +43,19 @@ class BuildTrainModel(object):
         Placeholders = namedtuple('Placeholders', ['encoder_inputs', 'decoder_inputs', 'decoder_outputs'])
 
         with tf.variable_scope('placeholders'):
-
             encoder_inputs = tf.placeholder(tf.int32,
-                                            [self.__config.batch_size, self.__max_source_sequence_length],
+                                            [self.__config.batch_size,
+                                             self.__dataset_metadata.max_source_sequence_length],
                                             'encoder_inputs')
 
             decoder_inputs = tf.placeholder(tf.int32,
-                                            [self.__config.batch_size, self.__max_target_sequence_length],
+                                            [self.__config.batch_size,
+                                             self.__dataset_metadata.max_target_sequence_length],
                                             'decoder_inputs')
 
             decoder_outputs = tf.placeholder(tf.int32,
-                                             [self.__config.batch_size, self.__max_target_sequence_length],
+                                             [self.__config.batch_size,
+                                              self.__dataset_metadata.max_target_sequence_length],
                                              'decoder_outputs')
 
             return Placeholders(
@@ -58,7 +64,7 @@ class BuildTrainModel(object):
                 decoder_outputs=decoder_outputs
             )
 
-    def __create_encoder(self, embedding_matrix, encoder_inputs):
+    def create_encoder(self, embedding_matrix, encoder_inputs):
         with tf.variable_scope('encoder'):
             encoder_cell = tf.nn.rnn_cell.BasicLSTMCell(self.__config.num_cells)
 
@@ -82,7 +88,7 @@ class BuildTrainModel(object):
                                                                         axis=1,
                                                                         dtype=tf.int32))  # time_major=True
 
-            projection_layer = layers_core.Dense(len(self.__vocabulary), use_bias=False)
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
 
             decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell,
                                                       helper,

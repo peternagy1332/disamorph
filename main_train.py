@@ -9,20 +9,22 @@ def main():
 
     # Loading train data
     train_data_processor = TrainDataProcessor(model_configuration)
-    dataset, max_source_sequence_length, max_target_sequence_length = train_data_processor.process_dataset()
+    dataset, dataset_metadata = train_data_processor.process_dataset()
 
     train_data_processor.save_dataset_metadata()
 
     # Building graph
-    morph_disam_model = BuildTrainModel(model_configuration,
+    build_train_model = BuildTrainModel(model_configuration,
                                         train_data_processor.vocabulary,
-                                        max_source_sequence_length,
-                                        max_target_sequence_length)
+                                        train_data_processor.inverse_vocabulary,
+                                        dataset_metadata)
 
-    model = morph_disam_model.create_model()
+    train_graph = build_train_model.get_train_graph()
+
+    model = build_train_model.create_model()
 
     # Begin training
-    morph_disam_trainer = MorphDisamTrainer(model_configuration, model)
+    morph_disam_trainer = MorphDisamTrainer(train_graph, model_configuration, model)
 
     morph_disam_trainer.train(dataset)
 

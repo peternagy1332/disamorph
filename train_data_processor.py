@@ -107,17 +107,21 @@ class TrainDataProcessor(object):
                                        range(target_output_matrix.shape[0] // self.__config.batch_size)]
         )
 
-        self.__max_source_sequence_length = max_source_sequence_length
-        self.__max_target_sequence_length = max_target_sequence_length
+        DatasetMetadata = namedtuple('DatasetMetadata', ['max_source_sequence_length', 'max_target_sequence_length'])
 
-        return dataset, max_source_sequence_length, max_target_sequence_length
+        self.__dataset_metadata = DatasetMetadata(
+            max_source_sequence_length=max_source_sequence_length,
+            max_target_sequence_length=max_target_sequence_length
+        )
+
+        return dataset, self.__dataset_metadata
 
     def save_dataset_metadata(self):
         print('Saving dataset metadata to ', self.__config.train_files_dataset_metadata)
 
         dataset_metadata = dict(
-            max_source_sequence_length = self.__max_source_sequence_length,
-            max_target_sequence_length = self.__max_target_sequence_length
+            max_source_sequence_length = self.__dataset_metadata.max_source_sequence_length,
+            max_target_sequence_length = self.__dataset_metadata.max_target_sequence_length
         )
 
         with open(self.__config.train_files_dataset_metadata, 'w', encoding='utf8') as outfile:
