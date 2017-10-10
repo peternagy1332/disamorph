@@ -26,7 +26,8 @@ class ModelConfiguration(object):
                  'max_source_sequence_length',
                  'max_target_sequence_length',
                  'infer_size',
-                 'infer_maximum_iterations')
+                 'infer_maximum_iterations',
+                 'analyses_path')
 
     def __init__(self):
         self.embedding_size = 10
@@ -52,3 +53,4 @@ class ModelConfiguration(object):
         self.train_save_modulo = 10
         self.infer_size = 1
         self.infer_maximum_iterations = 10
+        self.analyses_path = os.path.join('data', 'analyses.txt')
