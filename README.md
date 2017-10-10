@@ -20,3 +20,8 @@ Hence I collected only the roots.
 ```bash
 grep -oh '\[[^]]*\]' ./* | sort | uniq -c > tags.txt
 ```
+
+### Collecting all analyses of words appearing in Szeged corpus
+```bash
+cat ./* | cut -f2 | sort | uniq | hfst-lookup ../../emMorph/hfst/hu.hfstol -s | cut -f1,2 > ../analyses.txt
+```

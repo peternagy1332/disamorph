@@ -1,8 +1,9 @@
-from config import ModelConfiguration
-from model_inference import BuildInferenceModel
-from model_train import BuildTrainModel
-from train_data_processor import TrainDataProcessor
 import numpy as np
+from model.model_inference import BuildInferenceModel
+
+from config.config import ModelConfiguration
+from data_processing.train_data_processor import TrainDataProcessor
+from model.model_train import BuildTrainModel
 
 
 def main():

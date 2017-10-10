@@ -1,7 +1,7 @@
-from config import ModelConfiguration
-from model_train import BuildTrainModel
+from config.config import ModelConfiguration
+from data_processing.train_data_processor import TrainDataProcessor
+from model.model_train import BuildTrainModel
 from train import MorphDisamTrainer
-from train_data_processor import TrainDataProcessor
 
 
 def main():

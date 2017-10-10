@@ -1,6 +1,6 @@
-from config import ModelConfiguration
-from model_train import BuildTrainModel
-from toy_train_data_processor import TrainDataProcessor
+from config.config import ModelConfiguration
+from data_processing.toy_train_data_processor import TrainDataProcessor
+from model.model_train import BuildTrainModel
 from train import MorphDisamTrainer
 
 

@@ -1,9 +1,11 @@
-from config import ModelConfiguration
-from model_inference import BuildInferenceModel
-from model_train import BuildTrainModel
-from toy_train_data_processor import TrainDataProcessor
 import numpy as np
+from model.model_inference import BuildInferenceModel
 
+from config.config import ModelConfiguration
+from data_processing.toy_train_data_processor import TrainDataProcessor
+from model.model_train import BuildTrainModel
+
+np.set_printoptions(linewidth=200, precision=2)
 
 def main():
     model_configuration = ModelConfiguration()

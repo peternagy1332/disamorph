@@ -21,13 +21,13 @@ class BuildInferenceModel(object):
             encoder_outputs, encoder_state = self.__build_train_model.create_encoder(embedding_matrix,
                                                                                placeholders.infer_inputs)
 
-            final_outputs_sample_id = self.__create_decoder(embedding_matrix, encoder_state)
+            final_outputs = self.__create_decoder(embedding_matrix, encoder_state)
 
-            Model = namedtuple('Model', ['placeholders', 'final_outputs_sample_id'])
+            Model = namedtuple('Model', ['placeholders', 'final_outputs'])
 
             return Model(
                 placeholders=placeholders,
-                final_outputs_sample_id=final_outputs_sample_id
+                final_outputs=final_outputs
             )
 
     def __create_placeholders(self):
@@ -63,7 +63,7 @@ class BuildInferenceModel(object):
             final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(
                 decoder, maximum_iterations=self.__config.infer_maximum_iterations)
 
-            return final_outputs.sample_id
+            return final_outputs
 
     def __lookup_vector_to_analysis(self, vector):
         analysis = ''
@@ -71,9 +71,15 @@ class BuildInferenceModel(object):
         list = vector.tolist()  # TODO: flatten() did not work
 
         for component in list[0]:
+
             analysis += self.__inverse_vocabulary[component]
 
         return analysis
+
+    def __logits_to_sequence_probability(self, logits):
+        sum_max_logits = np.sum(logits.max(axis=1))
+        exp_sum_max_logits = np.exp(sum_max_logits)
+        return exp_sum_max_logits / (exp_sum_max_logits+1)
 
     def infer(self, infer_model, input_sequence):
         with self.__infer_graph.as_default():
@@ -85,11 +91,18 @@ class BuildInferenceModel(object):
 
                 saver.restore(sess, self.__config.train_files_save_model)
 
-                final_outputs_sample_id_return = sess.run([infer_model.final_outputs_sample_id],
+                final_outputs = sess.run([infer_model.final_outputs],
                                                 feed_dict={infer_model.placeholders.infer_inputs: input_sequence})
 
-                print(self.__lookup_vector_to_analysis(input_sequence))
-                print(final_outputs_sample_id_return)
-                print(self.__lookup_vector_to_analysis(final_outputs_sample_id_return[0]))
 
-                return final_outputs_sample_id_return
+                print('input_sequence', self.__lookup_vector_to_analysis(input_sequence),'\n')
+
+                sequence_probability = self.__logits_to_sequence_probability(final_outputs[0].rnn_output[0])
+
+                print('output sequence probability: ', sequence_probability)
+
+
+                print('sample_id')
+                print(self.__lookup_vector_to_analysis(final_outputs[0].sample_id))
+
+                return final_outputs
