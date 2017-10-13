@@ -10,10 +10,10 @@ class BuildInferenceModel(object):
         self.__dataset_metadata = dataset_metadata
         self.__build_train_model = build_train_model
 
-        self.__infer_graph = tf.Graph()
+        self.__inference_graph = tf.Graph()
 
     def create_model(self):
-        with self.__infer_graph.as_default():
+        with self.__inference_graph.as_default():
             placeholders = self.__create_placeholders()
 
             embedding_matrix = self.__build_train_model.create_embedding()
@@ -23,11 +23,12 @@ class BuildInferenceModel(object):
 
             final_outputs = self.__create_decoder(embedding_matrix, encoder_state)
 
-            Model = namedtuple('Model', ['placeholders', 'final_outputs'])
+            Model = namedtuple('Model', ['placeholders', 'final_outputs', 'graph'])
 
             return Model(
                 placeholders=placeholders,
-                final_outputs=final_outputs
+                final_outputs=final_outputs,
+                graph=self.__inference_graph
             )
 
     def __create_placeholders(self):
@@ -71,38 +72,6 @@ class BuildInferenceModel(object):
         list = vector.tolist()  # TODO: flatten() did not work
 
         for component in list[0]:
-
             analysis += self.__inverse_vocabulary[component]
 
         return analysis
-
-    def __logits_to_sequence_probability(self, logits):
-        sum_max_logits = np.sum(logits.max(axis=1))
-        exp_sum_max_logits = np.exp(sum_max_logits)
-        return exp_sum_max_logits / (exp_sum_max_logits+1)
-
-    def infer(self, infer_model, input_sequence):
-        with self.__infer_graph.as_default():
-            with tf.Session() as sess:
-                saver = tf.train.Saver()
-
-                sess.run(tf.tables_initializer())
-                sess.run(tf.global_variables_initializer())
-
-                saver.restore(sess, self.__config.train_files_save_model)
-
-                final_outputs = sess.run([infer_model.final_outputs],
-                                                feed_dict={infer_model.placeholders.infer_inputs: input_sequence})
-
-
-                print('input_sequence', self.__lookup_vector_to_analysis(input_sequence),'\n')
-
-                sequence_probability = self.__logits_to_sequence_probability(final_outputs[0].rnn_output[0])
-
-                print('output sequence probability: ', sequence_probability)
-
-
-                print('sample_id')
-                print(self.__lookup_vector_to_analysis(final_outputs[0].sample_id))
-
-                return final_outputs

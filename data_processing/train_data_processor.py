@@ -7,6 +7,8 @@ import re
 
 import yaml
 
+from data_processing.analyses_processor import AnalysesProcessor
+
 
 class TrainDataProcessor(object):
     def __init__(self, model_configuration):
@@ -16,7 +18,7 @@ class TrainDataProcessor(object):
             self.__config.train_files_tags,
             self.__config.train_files_roots)
 
-        self.__corpus_dataframe = self.__read_corpus_dataframe(self.__config.train_files_corpus)
+        self.corpus_dataframe = self.__read_corpus_dataframe(self.__config.train_files_corpus)
 
     def __read_features_to_vocabularies(self, file_tags, file_roots):
         features = []
@@ -36,17 +38,23 @@ class TrainDataProcessor(object):
         return vocabulary, inverse_vocabulary
 
     def __read_corpus_dataframe(self, path_corpuses):
-        return pd.concat(
-            (pd.read_csv(f, sep='\t', usecols=[4], skip_blank_lines=True, header=None, nrows=self.__config.nrows,
-                         names=['analysis'])
-             for f in glob.glob(path_corpuses)), ignore_index=True)\
-            .applymap(lambda analysis: self.__lookup_analysis_to_list(analysis))
+        analyses_processor = AnalysesProcessor(self.__config, self.vocabulary)
+        corpus_dataframe = pd.concat(
+            (
+                pd.read_csv(f,
+                            sep='\t',
+                            usecols=[0, 4],
+                            skip_blank_lines=False, # WARNING: use .dropna() when constructing batches
+                            header=None,
+                            nrows=self.__config.nrows,
+                            names=['word', 'correct_analysis'])
+                for f in glob.glob(path_corpuses)), ignore_index=True
+        )
 
-    def __lookup_analysis_to_list(self, analysis):
-        root = re.search(r'\w+', analysis, re.UNICODE).group(0)
-        tags = re.findall(r'\[[^]]*\]', analysis, re.UNICODE)
-        return [self.vocabulary.get(root, self.__config.marker_unknown)] + [
-            self.vocabulary.get(tag, self.__config.marker_unknown) for tag in tags]
+        corpus_dataframe['correct_analysis'] = corpus_dataframe['correct_analysis'].apply(analyses_processor.lookup_analysis_to_list)
+
+        return corpus_dataframe
+
 
     def process_dataset(self):
 
@@ -56,17 +64,19 @@ class TrainDataProcessor(object):
         max_source_sequence_length = 0
         max_target_sequence_length = 0
 
+        nonempty_corpus_dataframe = self.corpus_dataframe.dropna()
+
         # Gathering examples in list format
-        for analysis_id in range(self.__corpus_dataframe.shape[0] - self.__config.window_length):
+        for analysis_id in range(nonempty_corpus_dataframe.shape[0] - self.__config.window_length):
             source_sequence = []
 
-            source_window_dataframe = self.__corpus_dataframe.loc[
+            source_window_dataframe = nonempty_corpus_dataframe.loc[
                                       analysis_id:analysis_id + self.__config.window_length - 1]
 
-            for source_row in source_window_dataframe['analysis']:
+            for source_row in source_window_dataframe['correct_analysis']:
                 source_sequence.extend(source_row + [self.__config.marker_analysis_divider])
 
-            target_sequence = self.__corpus_dataframe.loc[analysis_id + self.__config.window_length]['analysis']
+            target_sequence = nonempty_corpus_dataframe.loc[analysis_id + self.__config.window_length]['correct_analysis']
 
             source_sequence.extend([target_sequence[0], self.__config.marker_end_of_sentence])
 
@@ -94,7 +104,8 @@ class TrainDataProcessor(object):
         source_input_matrix = np.matrix(source_sequences, dtype=np.int32)
         target_output_matrix = np.matrix(target_sequences, dtype=np.int32)
         target_input_matrix = np.roll(target_output_matrix, 1, axis=1)
-        target_input_matrix[:, 0] = np.full((target_input_matrix.shape[0], 1), self.__config.marker_start_of_sentence, dtype=np.int32)
+        target_input_matrix[:, 0] = np.full((target_input_matrix.shape[0], 1),
+                                            self.__config.marker_start_of_sentence, dtype=np.int32)
 
         Dataset = namedtuple('Dataset', ['source_input_batches', 'target_input_batches', 'target_output_batches'])
 
