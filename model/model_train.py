@@ -86,7 +86,7 @@ class BuildTrainModel(object):
 
             helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length)  # time_major=True
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False, activation=tf.nn.softmax)
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False) # , activation=tf.nn.softmax
 
             decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell,
                                                       helper,

@@ -1,4 +1,5 @@
 import tensorflow as tf
+from dateutil.tz.tz import _ContextWrapper
 
 
 class MorphDisamTrainer(object):
@@ -49,7 +50,12 @@ class MorphDisamTrainer(object):
 
                     total_batches = len(dataset.source_input_batches)
 
-                    print('Running epochs...')
+                    print('\tTotal batches: ', total_batches)
+                    print('\tRunning epochs...')
+
+                    stopping_step = 0
+                    lowest_loss = None
+                    should_stop = False
                     for epoch_id in range(1, self.__config.train_epochs+1):
                         losses = []
                         for batch_id in range(total_batches):
@@ -64,9 +70,24 @@ class MorphDisamTrainer(object):
                             summary_writer.add_summary(summary_return, epoch_id * total_batches + batch_id)
                             losses.append(train_loss_return)
 
-                        print('Epoch\t', epoch_id, '\t', 'Losses -  min:', min(losses), ', max: ', max(losses), ', avg: ', sum(losses)/len(losses))
+                        avg_loss = sum(losses)/len(losses)
 
-                        if epoch_id > 0 and epoch_id % self.__config.train_save_modulo == 0:
-                            print('Saving model... ', end='')
+                        if lowest_loss is None:
+                            lowest_loss = avg_loss
+
+                        print('\tEpoch\t', epoch_id, '\t', 'Losses -  min:', min(losses), ', max: ', max(losses), ', avg: ', avg_loss)
+
+                        if avg_loss < lowest_loss:
+                            stopping_step = 0
+                            lowest_loss = avg_loss
+                        else:
+                            stopping_step+=1
+
+                        if stopping_step >= self.__config.train_early_stop_after_not_decreasing_loss_num:
+                            should_stop = True
+                            print('\tEarly stopping is triggered!')
+
+                        if (epoch_id > 0 and epoch_id % self.__config.train_save_modulo == 0) or should_stop:
+                            print('\tSaving model... ', end='')
                             save_path = saver.save(sess, self.__config.train_files_save_model)
-                            print('SAVED to: ', save_path)
+                            print('\tSAVED to: ', save_path)

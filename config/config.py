@@ -10,6 +10,7 @@ class ModelConfiguration(object):
                  'train_files_losses',
                  'train_files_save_model',
                  'train_save_modulo',
+                 'train_early_stop_after_not_decreasing_loss_num',
                  'max_source_sequence_length',
                  'max_target_sequence_length',
                  'embedding_size',
@@ -55,6 +56,7 @@ class ModelConfiguration(object):
         self.train_files_corpus = os.path.join('data', 'szeged', 'utas.conll-2009_ready.disamb.new')
         self.train_files_losses = os.path.join('logs', 'losses.txt')
         self.train_files_save_model = os.path.join('logs', 'model', 'saved_model.ckpt')
+        self.train_early_stop_after_not_decreasing_loss_num = 5
         self.train_save_modulo = 10
 
         self.inference_batch_size = 100
