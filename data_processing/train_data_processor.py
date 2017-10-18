@@ -3,7 +3,7 @@ from collections import namedtuple
 
 import pandas as pd
 import numpy as np
-import re
+import sys
 
 import yaml
 
@@ -21,6 +21,7 @@ class TrainDataProcessor(object):
         self.corpus_dataframe = self.__read_corpus_dataframe(self.__config.train_files_corpus)
 
     def __read_features_to_vocabularies(self, file_tags, file_roots):
+        print('def __read_features_to_vocabularies(self, file_tags, file_roots):')
         features = []
         with open(file_tags, encoding='utf-8') as f: features.extend(f.read().splitlines())
         with open(file_roots, encoding='utf-8') as f: features.extend(f.read().splitlines())
@@ -38,6 +39,7 @@ class TrainDataProcessor(object):
         return vocabulary, inverse_vocabulary
 
     def __read_corpus_dataframe(self, path_corpuses):
+        print('def __read_corpus_dataframe(self, path_corpuses):')
         analyses_processor = AnalysesProcessor(self.__config, self.vocabulary)
         corpus_dataframe = pd.concat(
             (
@@ -51,18 +53,43 @@ class TrainDataProcessor(object):
                 for f in glob.glob(path_corpuses)), ignore_index=True
         )
 
-        corpus_dataframe['correct_analysis'] = corpus_dataframe['correct_analysis'].apply(analyses_processor.lookup_analysis_to_list)
+        corpus_dataframe['correct_analysis'] = corpus_dataframe['correct_analysis']\
+            .apply(analyses_processor.lookup_analysis_to_list)
+
+        corpus_dataframe = self.__insert_start_of_sentence_rows(corpus_dataframe)
 
         return corpus_dataframe
 
+    def __insert_start_of_sentence_rows(self, corpus_dataframe):
+        print('def __insert_start_of_sentence_rows(self, corpus_dataframe):')
+        df = pd.DataFrame(columns=('word', 'correct_analysis'))
+        df_index = 0
+        for i in range(self.__config.window_length-1):
+            df.loc[df_index] = [self.inverse_vocabulary[self.__config.marker_start_of_sentence], [self.__config.marker_start_of_sentence]]
+            df_index+=1
+
+        for index, row in corpus_dataframe.iterrows():
+            if pd.isnull(row['word']):
+                for i in range(self.__config.window_length - 1):
+                    df.loc[df_index] = [self.inverse_vocabulary[self.__config.marker_start_of_sentence],
+                                        [self.__config.marker_start_of_sentence]]
+                    df_index += 1
+                continue
+
+            df.loc[df_index] = [row['word'], row['correct_analysis']]
+            df_index+=1
+
+            sys.stdout.write("\r%f%%\n" % (100*index/len(corpus_dataframe)))
+            sys.stdout.flush()
+
+        return df
+
 
     def process_dataset(self):
+        print('def process_dataset(self):')
 
         source_sequences = []
         target_sequences = []
-
-        max_source_sequence_length = 0
-        max_target_sequence_length = 0
 
         nonempty_corpus_dataframe = self.corpus_dataframe.dropna()
 
@@ -80,12 +107,6 @@ class TrainDataProcessor(object):
 
             source_sequence.extend([target_sequence[0], self.__config.marker_end_of_sentence])
 
-            if len(source_sequence) > max_source_sequence_length:
-                max_source_sequence_length = len(source_sequence)
-
-            if len(target_sequence) > max_target_sequence_length:
-                max_target_sequence_length = len(target_sequence)
-
             # Lists constructed
             source_sequences.append(source_sequence)
             target_sequences.append(target_sequence)
@@ -93,12 +114,12 @@ class TrainDataProcessor(object):
         # Padding lists
         for i, source_sequence in enumerate(source_sequences):
             source_sequences[i] = np.lib.pad(source_sequence,
-                                             (0, max_source_sequence_length - len(source_sequence)),
+                                             (0, self.__config.max_source_sequence_length - len(source_sequence)),
                                              'constant', constant_values=self.__config.marker_padding)
 
         for i, target_sequence in enumerate(target_sequences):
             target_sequences[i] = np.lib.pad(target_sequence,
-                                             (0, max_target_sequence_length - len(target_sequence)),
+                                             (0, self.__config.max_target_sequence_length - len(target_sequence)),
                                              'constant', constant_values=self.__config.marker_padding)
 
         source_input_matrix = np.matrix(source_sequences, dtype=np.int32)
@@ -118,36 +139,4 @@ class TrainDataProcessor(object):
                                        range(target_output_matrix.shape[0] // self.__config.batch_size)]
         )
 
-        print(dataset.source_input_batches[0])
-        print(dataset.target_input_batches[0])
-        print(dataset.target_output_batches[0])
-
-        DatasetMetadata = namedtuple('DatasetMetadata', ['max_source_sequence_length', 'max_target_sequence_length'])
-
-        self.__dataset_metadata = DatasetMetadata(
-            max_source_sequence_length=max_source_sequence_length,
-            max_target_sequence_length=max_target_sequence_length
-        )
-
-        return dataset, self.__dataset_metadata
-
-    def save_dataset_metadata(self):
-        print('Saving dataset metadata to ', self.__config.train_files_dataset_metadata)
-
-        dataset_metadata = dict(
-            max_source_sequence_length = self.__dataset_metadata.max_source_sequence_length,
-            max_target_sequence_length = self.__dataset_metadata.max_target_sequence_length
-        )
-
-        with open(self.__config.train_files_dataset_metadata, 'w', encoding='utf8') as outfile:
-            yaml.dump(dataset_metadata, outfile, default_flow_style=False)
-
-    def load_dataset_metadata(self):
-        print('Loading dataset metadata from ', self.__config.train_files_dataset_metadata)
-
-        with open(self.__config.train_files_dataset_metadata, 'r', encoding='utf8') as infile:
-            try:
-                loaded_dict = yaml.load(infile)
-                return namedtuple('DatasetMetadata', loaded_dict.keys())(**loaded_dict)
-            except yaml.YAMLError as e:
-                print(e)
+        return dataset

@@ -8,6 +8,8 @@ class MorphDisamTrainer(object):
         self.__train_graph = train_graph
 
     def train(self, dataset):
+        print('def train(self, dataset):')
+
         with self.__train_graph.as_default():
             with tf.variable_scope('train'):
                 cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -47,11 +49,12 @@ class MorphDisamTrainer(object):
 
                     total_batches = len(dataset.source_input_batches)
 
+                    print('Running epochs...')
                     for epoch_id in range(1, self.__config.train_epochs+1):
                         losses = []
                         for batch_id in range(total_batches):
-                            update_step_return, train_loss_return, summary_return = sess.run(
-                                [update_step, train_loss, merged_summary_op],
+                            summary_return, update_step_return, train_loss_return = sess.run(
+                                [merged_summary_op, update_step, train_loss],
                                 feed_dict={
                                     self.__model.placeholders.encoder_inputs: dataset.source_input_batches[batch_id],
                                     self.__model.placeholders.decoder_inputs: dataset.target_input_batches[batch_id],
@@ -59,10 +62,9 @@ class MorphDisamTrainer(object):
                                 })
 
                             summary_writer.add_summary(summary_return, epoch_id * total_batches + batch_id)
-
                             losses.append(train_loss_return)
 
-                        print('Epoch\t', epoch_id, '\t', 'Losses: ', losses)
+                        print('Epoch\t', epoch_id, '\t', 'Losses -  min:', min(losses), ', max: ', max(losses), ', avg: ', sum(losses)/len(losses))
 
                         if epoch_id > 0 and epoch_id % self.__config.train_save_modulo == 0:
                             print('Saving model... ', end='')

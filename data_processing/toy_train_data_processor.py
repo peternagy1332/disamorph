@@ -32,9 +32,6 @@ class TrainDataProcessor(object):
         source_sequences = [[word_id] + [self.__config.marker_end_of_sentence] + [self.__config.marker_padding]*5 for word_id in self.vocabulary.values()]
         target_sequences = [[source_sequence[0]]*3 + [self.__config.marker_end_of_sentence] + [self.__config.marker_padding]*1 for source_sequence in source_sequences]
 
-        max_source_sequence_length = 1 + 1 + 5
-        max_target_sequence_length = 3 + 1 + 1
-
         source_input_matrix = np.matrix(source_sequences, dtype=np.int32)
         target_output_matrix = np.matrix(target_sequences, dtype=np.int32)
         target_input_matrix = np.roll(target_output_matrix, 1, axis=1)
@@ -52,36 +49,4 @@ class TrainDataProcessor(object):
                                    range(target_output_matrix.shape[0] // self.__config.batch_size)]
         )
 
-        print(dataset.source_input_batches[0])
-        print(dataset.target_input_batches[0])
-        print(dataset.target_output_batches[0])
-
-        DatasetMetadata = namedtuple('DatasetMetadata', ['max_source_sequence_length', 'max_target_sequence_length'])
-
-        self.__dataset_metadata = DatasetMetadata(
-            max_source_sequence_length=max_source_sequence_length,
-            max_target_sequence_length=max_target_sequence_length
-        )
-
-        return dataset, self.__dataset_metadata
-
-    def save_dataset_metadata(self):
-        print('Saving dataset metadata to ', 'logs/dataset_metadata.yaml')
-
-        dataset_metadata = dict(
-            max_source_sequence_length=self.__dataset_metadata.max_source_sequence_length,
-            max_target_sequence_length=self.__dataset_metadata.max_target_sequence_length
-        )
-
-        with open('logs/dataset_metadata.yaml', 'w', encoding='utf8') as outfile:
-            yaml.dump(dataset_metadata, outfile, default_flow_style=False)
-
-    def load_dataset_metadata(self):
-        print('Loading dataset metadata from ', 'logs/dataset_metadata.yaml')
-
-        with open('logs/dataset_metadata.yaml', 'r', encoding='utf8') as infile:
-            try:
-                loaded_dict = yaml.load(infile)
-                return namedtuple('DatasetMetadata', loaded_dict.keys())(**loaded_dict)
-            except yaml.YAMLError as e:
-                print(e)
+        return dataset

@@ -23,5 +23,5 @@ grep -oh '\[[^]]*\]' ./* | sort | uniq -c > tags.txt
 
 ### Collecting all analyses of words appearing in Szeged corpus
 ```bash
-cat ./* | cut -f2 | sort | uniq | hfst-lookup ../../emMorph/hfst/hu.hfstol -s | cut -f1,2 > ../analyses.txt
+cat ./* | cut -f1 | sort | uniq | hfst-lookup --cascade=composition ../../emMorph/hfst/hu.hfstol -s | grep . | cut -f1,2 > ../analyses.txt
 ```

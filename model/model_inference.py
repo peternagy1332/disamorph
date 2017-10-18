@@ -4,10 +4,9 @@ import tensorflow as tf
 import numpy as np
 
 class BuildInferenceModel(object):
-    def __init__(self, model_configuration, inverse_vocabulary, dataset_metadata, build_train_model):
+    def __init__(self, model_configuration, inverse_vocabulary, build_train_model):
         self.__config = model_configuration
         self.__inverse_vocabulary = inverse_vocabulary
-        self.__dataset_metadata = dataset_metadata
         self.__build_train_model = build_train_model
 
         self.__inference_graph = tf.Graph()
@@ -36,8 +35,8 @@ class BuildInferenceModel(object):
 
         with tf.variable_scope('placeholders'):
             infer_inputs = tf.placeholder(tf.int32,
-                                          [self.__config.infer_size,
-                                           self.__dataset_metadata.max_source_sequence_length],
+                                          [self.__config.inference_batch_size,
+                                           self.__config.max_source_sequence_length],
                                           'infer_inputs')
 
             return Placeholders(
@@ -50,10 +49,10 @@ class BuildInferenceModel(object):
 
             helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(
                 embedding_matrix,
-                tf.fill([self.__config.infer_size], self.__config.marker_start_of_sentence),
+                tf.fill([self.__config.inference_batch_size], self.__config.marker_start_of_sentence),
                 self.__config.marker_end_of_sentence)
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False, activation=tf.nn.softmax)
 
             decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell,
                                                       helper,
