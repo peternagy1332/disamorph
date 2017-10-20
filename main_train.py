@@ -3,13 +3,13 @@ from data_processing.train_data_processor import TrainDataProcessor
 from model.model_train import BuildTrainModel
 from train import MorphDisamTrainer
 
-#
 
 def main():
     model_configuration = ModelConfiguration()
 
     # Loading train data
     train_data_processor = TrainDataProcessor(model_configuration)
+    train_data_processor.read_corpus_dataframe()
     dataset = train_data_processor.process_dataset()
 
     # Building graph

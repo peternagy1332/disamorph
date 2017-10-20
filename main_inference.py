@@ -7,32 +7,17 @@ def main():
 
     disambiguator = Disambiguator(model_configuration)
 
+    text="Egy legenda szerint a sajtot egy arab nomád fedezte fel. " \
+         "A legenda úgy szól, hogy tejjel töltött meg egy nyeregtáskát, hogy azt fogyassza az úton, " \
+         "ameddig keresztüllovagol a sivatagon. Több óra után lovaglás után megállt, hogy szomját oltsa, " \
+         "s látta, hogy a tej sápadt vizes folyadékká vált, melyben szilárd fehér darabokban vált ki a sajt. " \
+         "A nyeregtáska egy fiatal állat gyomrából készült, ez egy megalvasztó enzimet tartalmazott, amit renninként " \
+         "(alvasztóenzim) ismerünk. A tejet valójában a rennin, a forró nap és a ló vágtató mozgásának keveréke " \
+         "aludttejjé és savóvá választotta el."
 
-    for windows_combination_heights_in_sentence, logits_in_sentence in disambiguator.analysis_window_batches_to_logits_generator():
-        print('SENTENCE LOGITS')
-        print('windows_combination_heights_in_sentence', windows_combination_heights_in_sentence)
+    text = "Már mikor a motoscafon az állomásról befelé hajóztak, és elhagyták a Canale Grandét a rövidebb út kedvéért, Mihálynak feltűntek jobbra és balra a sikátorok."
 
-        logits_for_windows = []
-        current_window_logits_of_combinations = []
-        current_window_height = windows_combination_heights_in_sentence[0]
-        windows_combination_heights_in_sentence = windows_combination_heights_in_sentence[1:]
-
-        for logit in logits_in_sentence:
-            current_window_logits_of_combinations.append(logit)
-
-            if current_window_height > 1:
-                current_window_height-=1
-            else:
-                if len(windows_combination_heights_in_sentence) > 0:
-                    logits_for_windows.append(current_window_logits_of_combinations)
-                    print('\t', current_window_logits_of_combinations)
-                    current_window_logits_of_combinations = []
-                    current_window_height = windows_combination_heights_in_sentence[0]
-                    windows_combination_heights_in_sentence = windows_combination_heights_in_sentence[1:]
-                else:
-                    break
-
-        print('-'*70)
+    disambiguator.disambiguate_text(text)
 
 
 if __name__ == '__main__':

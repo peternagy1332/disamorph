@@ -13,18 +13,27 @@ class AnalysesProcessor(object):
             self.__analyses_dataframe = pd.read_csv(f,
                 sep='\t', header=None, names=['word', 'analysis'], quoting=csv.QUOTE_NONE)
 
-            self.__analyses_dataframe['analysis'] = self.__analyses_dataframe['analysis']\
+            self.__analyses_dataframe['analysis_vector'] = self.__analyses_dataframe['analysis']\
                 .apply(self.lookup_analysis_to_list)
 
             self.__analyses_dataframe = self.__analyses_dataframe.groupby(['word'])
+
+    def get_analyses_vector_list_for_word(self, word):
+        if word in self.__analyses_dataframe.groups:
+            return list(self.__analyses_dataframe.get_group(word)['analysis_vector'])
+
+        if word == '<SOS>': return [[self.__config.marker_start_of_sentence]]
+
+        return [[self.__config.marker_unknown]]
 
     def get_analyses_list_for_word(self, word):
         if word in self.__analyses_dataframe.groups:
             return list(self.__analyses_dataframe.get_group(word)['analysis'])
 
-        if word == '<SOS>': return [[self.__config.marker_start_of_sentence]]
+        # TODO: Lookup from table
+        if word == '<SOS>': return ['<SOS>']
 
-        return [[self.__config.marker_unknown]]
+        return ['<UNK>']
 
     def get_root_from_analysis(self, analysis):
         root = re.search(r'\w+', analysis, re.UNICODE)

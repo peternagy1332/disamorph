@@ -17,8 +17,7 @@ class BuildInferenceModel(object):
 
             embedding_matrix = self.__build_train_model.create_embedding()
 
-            encoder_outputs, encoder_state = self.__build_train_model.create_encoder(embedding_matrix,
-                                                                               placeholders.infer_inputs)
+            encoder_outputs, encoder_state = self.__build_train_model.create_encoder(embedding_matrix, placeholders.infer_inputs)
 
             final_outputs = self.__create_decoder(embedding_matrix, encoder_state)
 
@@ -61,7 +60,7 @@ class BuildInferenceModel(object):
 
             # output_time_major=True
             final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(
-                decoder, maximum_iterations=self.__config.infer_maximum_iterations)
+                decoder, maximum_iterations=self.__config.inference_maximum_iterations)
 
             return final_outputs
 

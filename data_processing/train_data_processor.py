@@ -8,6 +8,7 @@ import sys
 import yaml
 
 from data_processing.analyses_processor import AnalysesProcessor
+from utils import update_progress
 
 
 class TrainDataProcessor(object):
@@ -17,8 +18,6 @@ class TrainDataProcessor(object):
         self.vocabulary, self.inverse_vocabulary = self.__read_features_to_vocabularies(
             self.__config.train_files_tags,
             self.__config.train_files_roots)
-
-        self.corpus_dataframe = self.__read_corpus_dataframe(self.__config.train_files_corpus)
 
     def __read_features_to_vocabularies(self, file_tags, file_roots):
         print('def __read_features_to_vocabularies(self, file_tags, file_roots):')
@@ -38,7 +37,7 @@ class TrainDataProcessor(object):
         
         return vocabulary, inverse_vocabulary
 
-    def __read_corpus_dataframe(self, path_corpuses):
+    def read_corpus_dataframe(self):
         print('def __read_corpus_dataframe(self, path_corpuses):')
         analyses_processor = AnalysesProcessor(self.__config, self.vocabulary)
         corpus_dataframe = pd.concat(
@@ -50,7 +49,7 @@ class TrainDataProcessor(object):
                             header=None,
                             nrows=self.__config.nrows,
                             names=['word', 'correct_analysis'])
-                for f in glob.glob(path_corpuses)), ignore_index=True
+                for f in glob.glob(self.__config.train_files_corpus)), ignore_index=True
         )
 
         corpus_dataframe['correct_analysis'] = corpus_dataframe['correct_analysis']\
@@ -58,7 +57,7 @@ class TrainDataProcessor(object):
 
         corpus_dataframe = self.__insert_start_of_sentence_rows(corpus_dataframe)
 
-        return corpus_dataframe
+        self.corpus_dataframe = corpus_dataframe
 
     def __insert_start_of_sentence_rows(self, corpus_dataframe):
         print('def __insert_start_of_sentence_rows(self, corpus_dataframe):')
@@ -68,25 +67,26 @@ class TrainDataProcessor(object):
             df.loc[df_index] = [self.inverse_vocabulary[self.__config.marker_start_of_sentence], [self.__config.marker_start_of_sentence]]
             df_index+=1
 
+        corpus_dataframe_rows = len(corpus_dataframe)
+
         for index, row in corpus_dataframe.iterrows():
             if pd.isnull(row['word']):
                 for i in range(self.__config.window_length - 1):
-                    df.loc[df_index] = [self.inverse_vocabulary[self.__config.marker_start_of_sentence],
-                                        [self.__config.marker_start_of_sentence]]
+                    df.loc[df_index] = [self.inverse_vocabulary[self.__config.marker_start_of_sentence], [self.__config.marker_start_of_sentence]]
                     df_index += 1
                 continue
 
             df.loc[df_index] = [row['word'], row['correct_analysis']]
             df_index+=1
 
-            sys.stdout.write("\r%f%%\n" % (100*index/len(corpus_dataframe)))
-            sys.stdout.flush()
+            update_progress(index, corpus_dataframe_rows, 'Inserting <SOS> (percentage approximated)')
 
         return df
 
 
+
     def process_dataset(self):
-        print('def process_dataset(self):')
+        print('\ndef process_dataset(self):')
 
         source_sequences = []
         target_sequences = []

@@ -1,5 +1,6 @@
 import tensorflow as tf
-from dateutil.tz.tz import _ContextWrapper
+
+from utils import update_progress
 
 
 class MorphDisamTrainer(object):
@@ -67,6 +68,7 @@ class MorphDisamTrainer(object):
                                     self.__model.placeholders.decoder_outputs: dataset.target_output_batches[batch_id]
                                 })
 
+                            update_progress(batch_id, total_batches-1, 'Training on batches...')
                             summary_writer.add_summary(summary_return, epoch_id * total_batches + batch_id)
                             losses.append(train_loss_return)
 
@@ -75,7 +77,7 @@ class MorphDisamTrainer(object):
                         if lowest_loss is None:
                             lowest_loss = avg_loss
 
-                        print('\tEpoch\t', epoch_id, '\t', 'Losses -  min:', min(losses), ', max: ', max(losses), ', avg: ', avg_loss)
+                        print('\n\tEpoch\t', epoch_id, '\t', 'Losses -  min:', min(losses), ', max: ', max(losses), ', avg: ', avg_loss)
 
                         if avg_loss < lowest_loss:
                             stopping_step = 0
