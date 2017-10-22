@@ -53,11 +53,11 @@ class ModelConfiguration(object):
         self.marker_unknown = 4
 
         self.vocabulary_start_index = 5
-        self.rows_to_read_num = 1000
+        self.rows_to_read_num = 500
         self.max_gradient_norm = 1  # 1..5
         self.learning_rate = 1
 
-        self.train_epochs = 100
+        self.train_epochs = 10
         self.train_files_tags = os.path.join('data', 'tags.txt')
         self.train_files_roots = os.path.join('data', 'roots.txt')
         self.train_files_corpus = os.path.join('data', 'szeged-judit', 'utas.conll-2009_ready.disamb.new')
@@ -69,7 +69,7 @@ class ModelConfiguration(object):
         self.train_shuffle_sentences = True
         self.test_sentences_rate = 0.1
 
-        self.hidden_layer_count = 16
+        self.hidden_layer_count = 2
         self.hidden_layer_cells = 64
         self.hidden_layer_cell_type = 'GRU'
 

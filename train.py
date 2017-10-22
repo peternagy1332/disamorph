@@ -93,6 +93,8 @@ class MorphDisamTrainer(object):
                             print('\tSaving model... ', end='')
                             save_path = saver.save(sess, self.__config.train_files_save_model)
                             print('\tSAVED to: ', save_path)
+                            if should_stop:
+                                break
 
     def evaluate_model(self, disambiguator, sentence_dataframes, every_nth_sentence = None):
         accuracies = []

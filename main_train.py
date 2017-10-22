@@ -39,7 +39,7 @@ def main():
     # Begin training
     morph_disam_trainer = MorphDisamTrainer(train_graph, model_configuration, model)
 
-    morph_disam_trainer.train(train_batches)
+    #morph_disam_trainer.train(train_batches)
 
     # Evaluating model
     disambiguator = Disambiguator(model_configuration)

@@ -19,7 +19,7 @@ class BuildInferenceModel(object):
 
             encoder_outputs, encoder_state = self.__build_train_model.create_encoder(embedding_matrix, placeholders.infer_inputs)
 
-            final_outputs = self.__create_decoder(embedding_matrix, encoder_state)
+            final_outputs = self.__create_decoder(embedding_matrix, encoder_outputs, encoder_state)
 
             Model = namedtuple('Model', ['placeholders', 'final_outputs', 'graph'])
 
@@ -42,9 +42,21 @@ class BuildInferenceModel(object):
                 infer_inputs=infer_inputs
             )
 
-    def __create_decoder(self, embedding_matrix, encoder_state):
+    def __create_decoder(self, embedding_matrix, encoder_outputs, encoder_state):
         with tf.variable_scope('decoder'):
             decoder_rnn = self.__build_train_model.create_rnn()
+
+            #decoder_inputs_sequence_length = tf.count_nonzero(placeholders.decoder_inputs, axis=1, dtype=tf.int32)
+
+            mechanism = tf.contrib.seq2seq.LuongAttention(
+                self.__config.hidden_layer_cells, encoder_outputs,
+                memory_sequence_length=[self.__config.max_target_sequence_length]*self.__config.inference_batch_size,
+                scale=False
+            )
+
+            decoder_rnn = tf.contrib.seq2seq.AttentionWrapper(
+                decoder_rnn, mechanism, attention_layer_size=self.__config.hidden_layer_cells
+            )
 
             helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(
                 embedding_matrix,
@@ -53,10 +65,16 @@ class BuildInferenceModel(object):
 
             projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False, activation=tf.nn.softmax)
 
-            decoder = tf.contrib.seq2seq.BasicDecoder(decoder_rnn,
-                                                      helper,
-                                                      encoder_state,
-                                                      output_layer=projection_layer) #time_major=True
+            decoder_initial_state = decoder_rnn.zero_state(
+                self.__config.inference_batch_size, tf.float32) \
+                .clone(cell_state=encoder_state)
+
+            decoder = tf.contrib.seq2seq.BasicDecoder(
+                cell=decoder_rnn,
+                helper=helper,
+                initial_state=decoder_initial_state,
+                output_layer=projection_layer
+            ) # time_major=False
 
             # output_time_major=True
             final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(

@@ -61,16 +61,16 @@ class Disambiguator(object):
 
         word_in_sentence_id = 0
 
-        added_combinations = 0
-
         while word_in_sentence_id <= len(corpus_words) - self.__config.window_length + 1:
             # Is last window in sentence
             if (word_in_sentence_id + self.__config.window_length - 1 == len(corpus_words)) or \
                     (corpus_words[word_in_sentence_id + self.__config.window_length - 1] == self.__data_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]):
-                padded_sentence_batch = np.matrix(self.__data_processor.pad_batch(windows_combination_vectors_in_sentence,
-                                                                        self.__config.max_source_sequence_length,
-                                                                        self.__config.inference_batch_size)[:self.__config.inference_batch_size])
 
+                padded_sentence_batch = self.__data_processor.pad_batch(
+                    windows_combination_vectors_in_sentence,
+                    self.__config.max_source_sequence_length,
+                    self.__config.inference_batch_size
+                )
 
                 yield windows_combinations_in_sentence, padded_sentence_batch
 
@@ -83,21 +83,15 @@ class Disambiguator(object):
             # Pipeline alike processing of current word
 
             window_combinations_vector = self.__collect_analyses_for_each_word_in_window(corpus_words, word_in_sentence_id)
-            window_combinations = self.__collect_analyses_for_each_word_in_window(corpus_words, word_in_sentence_id, False)
+            window_analyses = self.__collect_analyses_for_each_word_in_window(corpus_words, word_in_sentence_id, False)
 
             combinations_in_window = list(itertools.product(*window_combinations_vector[:self.__config.inference_batch_size]))
             vectorized_window_combinations = self.__data_processor.format_window_word_analyses(combinations_in_window)
 
+            window_combinations = list(itertools.product(*window_analyses))
+
             windows_combination_vectors_in_sentence.extend(vectorized_window_combinations)
-
-            combinations = list(itertools.product(*window_combinations))
-            if added_combinations+len(combinations) > self.__config.inference_batch_size:
-                combinations = combinations[:self.__config.inference_batch_size-added_combinations]
-                added_combinations+=self.__config.inference_batch_size-added_combinations
-            else:
-                added_combinations+=len(combinations)
-
-            windows_combinations_in_sentence.append(combinations)
+            windows_combinations_in_sentence.append(window_combinations)
 
             word_in_sentence_id += 1
 
@@ -114,15 +108,55 @@ class Disambiguator(object):
                 saver.restore(sess, self.__config.train_files_save_model)
 
                 for windows_combinations_in_sentence, padded_sentence_batch in analysis_window_batch_generator:
-                    final_outputs = sess.run([self.__inference_model.final_outputs],
-                                             feed_dict={
-                                                 self.__inference_model.placeholders.infer_inputs: padded_sentence_batch
-                                             })
+                    # If the all the combinations was less or equal then inference_batch_size
+                    if len(padded_sentence_batch) == self.__config.inference_batch_size:
+                        padded_sentence_batch = np.matrix(padded_sentence_batch)
+                        final_outputs = sess.run(
+                            [self.__inference_model.final_outputs],
+                            feed_dict={
+                                self.__inference_model.placeholders.infer_inputs: padded_sentence_batch
+                            }
+                        )
 
+                        # Combinations and probabilities in window
+                        yield windows_combinations_in_sentence, list(map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output))
 
-                    # Window heights and logits of each output sequence
-                    yield windows_combinations_in_sentence, map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output)
+                    else:
+                        probabilities = []
+                        i=0
+                        # print('len(padded_sentence_batch)', len(padded_sentence_batch))
+                        while i < len(padded_sentence_batch):
+                            # print('while i < len(padded_sentence_batch):', i, i+self.__config.inference_batch_size)
+                            if i+self.__config.inference_batch_size <= len(padded_sentence_batch):
+                                # print('\tunderindexing')
+                                padded_sentence_part_batch = np.matrix(padded_sentence_batch[i:i+self.__config.inference_batch_size])
+                            else:
+                                # print('\toverindexing')
+                                padded_sentence_part_batch = np.matrix(
+                                    self.__data_processor.pad_batch(
+                                        padded_sentence_batch[i:],
+                                        self.__config.max_source_sequence_length,
+                                        self.__config.inference_batch_size
+                                    )
+                                )
 
+                            final_outputs = sess.run(
+                                [self.__inference_model.final_outputs],
+                                feed_dict={
+                                    self.__inference_model.placeholders.infer_inputs: padded_sentence_part_batch
+                                }
+                            )
+
+                            inference_batch_probabilities = list(map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output))
+                            # print('\tinference_batch_probabilities', len(inference_batch_probabilities))
+                            probabilities.extend(inference_batch_probabilities)
+
+                            i+=self.__config.inference_batch_size
+
+                        # print('NAGY OSSZESITO', sum(len(w) for w in windows_combinations_in_sentence), len(probabilities))
+
+                        # Combinations and probabilities in window
+                        yield windows_combinations_in_sentence, probabilities
 
     def disambiguate_corpus_by_sentence_generator(self, corpus):
         # TODO: Huntoken
@@ -186,7 +220,6 @@ class Disambiguator(object):
 
     def get_windows_with_probabilities_by_sentence_generator(self, corpus_words):
         for windows_combinations_in_sentence, probabilities_in_sentence in self.__corpus_words_to_windows_and_probabilities(corpus_words):
-            probabilities_in_sentence = list(probabilities_in_sentence)
             windows_combinations_with_probabilities = []
 
             windows_combination_heights_in_sentence = list(map(lambda window_combinations: len(window_combinations), windows_combinations_in_sentence))
@@ -194,10 +227,12 @@ class Disambiguator(object):
             for window_id, window_height in enumerate(windows_combination_heights_in_sentence):
                 window_heights_so_far = sum(windows_combination_heights_in_sentence[:window_id])
                 window_probabilities = []
-                for probability_id in range(window_heights_so_far, min(window_heights_so_far+window_height, self.__config.inference_batch_size)):
+                for probability_id in range(window_heights_so_far, window_heights_so_far+window_height):
                     window_probabilities.append(probabilities_in_sentence[probability_id])
 
                 window_combinations_in_sentence = [tuple(combination) for combination in windows_combinations_in_sentence[window_id]]
+
+                #print(len(window_combinations_in_sentence), windows_combination_heights_in_sentence[window_id], len(window_probabilities))
 
                 windows_combinations_with_probabilities.append(zip(window_combinations_in_sentence, window_probabilities))
 

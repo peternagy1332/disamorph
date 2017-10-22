@@ -22,7 +22,7 @@ class BuildTrainModel(object):
 
             encoder_outputs, encoder_state = self.create_encoder(embedding_matrix, placeholders.encoder_inputs)
 
-            logits = self.__create_decoder(embedding_matrix, encoder_state, placeholders)
+            logits = self.__create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
 
             Model = namedtuple('Model', ['placeholders', 'logits'])
 
@@ -80,40 +80,44 @@ class BuildTrainModel(object):
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, encoder_inputs)
 
-            encoder_outputs, encoder_state = tf.nn.dynamic_rnn(encoder_rnn, embedding_input,
-                                                               sequence_length=tf.count_nonzero(encoder_inputs,
-                                                                                                axis=1,
-                                                                                                dtype=tf.int32),
-                                                               dtype=tf.float32)  # time_major=True
+            encoder_outputs, encoder_state = tf.nn.dynamic_rnn(
+                encoder_rnn, embedding_input,
+                sequence_length=tf.count_nonzero(encoder_inputs, axis=1, dtype=tf.int32),
+                dtype=tf.float32,
+                time_major=False)
+
             return encoder_outputs, encoder_state
 
-    def __create_decoder(self, embedding_matrix, encoder_state, placeholders):
+    def __create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders):
         with tf.variable_scope('decoder'):
             decoder_rnn = self.create_rnn()
 
             decoder_inputs_sequence_length = tf.count_nonzero(placeholders.decoder_inputs, axis=1, dtype=tf.int32)
 
-            # mechanism = tf.contrib.seq2seq.LuongAttention(
-            #     self.__config.decoder_cells, encoder_state,
-            #     memory_sequence_length=decoder_inputs_sequence_length,
-            #     scale=False
-            # )
-            #
-            # decoder_cell = tf.contrib.seq2seq.AttentionWrapper(
-            #     decoder_cell, mechanism,
-            #     attention_layer_size=self.__config.decoder_cells
-            # )
+            mechanism = tf.contrib.seq2seq.LuongAttention(
+                self.__config.hidden_layer_cells, encoder_outputs,
+                memory_sequence_length=decoder_inputs_sequence_length,
+                scale=False
+            )
+
+            decoder_rnn = tf.contrib.seq2seq.AttentionWrapper(
+                decoder_rnn, mechanism, attention_layer_size=self.__config.hidden_layer_cells
+            )
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, placeholders.decoder_inputs)
 
-            helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length)  # time_major=True
+            helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length, time_major=False)
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False) # , activation=tf.nn.softmax
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
+
+            decoder_initial_state = decoder_rnn.zero_state(
+                self.__config.batch_size, tf.float32)\
+                .clone(cell_state=encoder_state)
 
             decoder = tf.contrib.seq2seq.BasicDecoder(
-                decoder_rnn,
-                helper,
-                encoder_state,
+                cell=decoder_rnn,
+                helper=helper,
+                initial_state=decoder_initial_state,
                 output_layer=projection_layer
             )
 
