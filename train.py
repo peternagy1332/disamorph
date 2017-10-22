@@ -9,7 +9,7 @@ class MorphDisamTrainer(object):
         self.__model = model
         self.__train_graph = train_graph
 
-    def train(self, dataset):
+    def train(self, train_batches):
         print('def train(self, dataset):')
 
         with self.__train_graph.as_default():
@@ -49,26 +49,26 @@ class MorphDisamTrainer(object):
 
                     summary_writer = tf.summary.FileWriter(self.__config.train_files_losses, graph=tf.get_default_graph())
 
-                    total_batches = len(dataset.source_input_batches)
-
-                    print('\tTotal batches: ', total_batches)
-                    print('\tRunning epochs...')
+                    total_batches = len(train_batches.source_input_batches)
 
                     stopping_step = 0
                     lowest_loss = None
                     should_stop = False
                     for epoch_id in range(1, self.__config.train_epochs+1):
+                        print('\tRunning epoch ', str(epoch_id)+'/'+str(self.__config.train_epochs))
                         losses = []
+
                         for batch_id in range(total_batches):
+                            update_progress(batch_id, total_batches, 'Training on batches...')
                             summary_return, update_step_return, train_loss_return = sess.run(
                                 [merged_summary_op, update_step, train_loss],
                                 feed_dict={
-                                    self.__model.placeholders.encoder_inputs: dataset.source_input_batches[batch_id],
-                                    self.__model.placeholders.decoder_inputs: dataset.target_input_batches[batch_id],
-                                    self.__model.placeholders.decoder_outputs: dataset.target_output_batches[batch_id]
+                                    self.__model.placeholders.encoder_inputs: train_batches.source_input_batches[batch_id],
+                                    self.__model.placeholders.decoder_inputs: train_batches.target_input_batches[batch_id],
+                                    self.__model.placeholders.decoder_outputs: train_batches.target_output_batches[batch_id]
                                 })
 
-                            update_progress(batch_id, total_batches-1, 'Training on batches...')
+                            update_progress(batch_id+1, total_batches, 'Training on batches...')
                             summary_writer.add_summary(summary_return, epoch_id * total_batches + batch_id)
                             losses.append(train_loss_return)
 
@@ -77,7 +77,7 @@ class MorphDisamTrainer(object):
                         if lowest_loss is None:
                             lowest_loss = avg_loss
 
-                        print('\n\tEpoch\t', epoch_id, '\t', 'Losses -  min:', min(losses), ', max: ', max(losses), ', avg: ', avg_loss)
+                        print('\n\tLosses -  min:', min(losses), ', max: ', max(losses), ', avg: ', avg_loss, '\n')
 
                         if avg_loss < lowest_loss:
                             stopping_step = 0
@@ -93,3 +93,24 @@ class MorphDisamTrainer(object):
                             print('\tSaving model... ', end='')
                             save_path = saver.save(sess, self.__config.train_files_save_model)
                             print('\tSAVED to: ', save_path)
+
+    def evaluate_model(self, disambiguator, sentence_dataframes):
+        accuracies = []
+        print('\t#{sentences}: ', len(sentence_dataframes))
+        print('\tSenten.\t#{words}\tAccuracy')
+        for test_sentence_id, test_sentence_dataframe in enumerate(sentence_dataframes):
+            words_to_disambiguate = test_sentence_dataframe['word'].tolist()  # Including <SOS>
+
+            disambiguated_sentence = next(disambiguator.disambiguate_words_by_sentence_generator(words_to_disambiguate))
+            correct_analyses = test_sentence_dataframe.loc[self.__config.window_length - 1:]['correct_analysis'].tolist()
+
+            matching_analyses = 0
+            for i in range(len(disambiguated_sentence)):
+                if disambiguated_sentence[i] == correct_analyses[i]:
+                    matching_analyses += 1
+
+            accuracy = 100 * matching_analyses / len(words_to_disambiguate)
+            accuracies.append(accuracy)
+            print('\t'+str(test_sentence_id)+ '\t'+ str(len(correct_analyses))+ '\t'+ str(accuracy)+'%')
+
+        print('\tAccuracies: min - '+ str(min(accuracies))+ '%\tmax - '+ str(max(accuracies))+ '%\t avg - '+ str(sum(accuracies)/len(accuracies))+'%')

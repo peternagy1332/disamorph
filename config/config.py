@@ -11,6 +11,8 @@ class ModelConfiguration(object):
                  'train_files_save_model',
                  'train_save_modulo',
                  'train_early_stop_after_not_decreasing_loss_num',
+                 'train_shuffle_sentences',
+                 'test_sentences_rate',
                  'max_source_sequence_length',
                  'max_target_sequence_length',
                  'embedding_size',
@@ -23,7 +25,7 @@ class ModelConfiguration(object):
                  'marker_end_of_sentence',
                  'marker_unknown',
                  'vocabulary_start_index',
-                 'nrows',
+                 'rows_to_read_num',
                  'max_gradient_norm',
                  'learning_rate',
                  'train_epochs',
@@ -35,7 +37,7 @@ class ModelConfiguration(object):
 
     def __init__(self):
         self.embedding_size = 256
-        self.num_cells = 1024 #
+        self.num_cells = 2048 #
         self.batch_size = 64
         self.window_length = 5
 
@@ -46,22 +48,25 @@ class ModelConfiguration(object):
         self.marker_unknown = 4
 
         self.vocabulary_start_index = 5
-        self.nrows = None
+        self.rows_to_read_num = 10000
         self.max_gradient_norm = 1  # 1..5
         self.learning_rate = 1
 
         self.train_epochs = 10
         self.train_files_tags = os.path.join('data', 'tags.txt')
         self.train_files_roots = os.path.join('data', 'roots.txt')
-        self.train_files_corpus = os.path.join('data', 'szeged', 'utas.conll-2009_ready.disamb.new')
+        self.train_files_corpus = os.path.join('data', 'szeged-judit', 'utas.conll-2009_ready.disamb.new')
+        #self.train_files_corpus = os.path.join('data', 'szeged-judit', '*')
         self.train_files_losses = os.path.join('logs', 'losses.txt')
         self.train_files_save_model = os.path.join('logs', 'model', 'saved_model.ckpt')
         self.train_early_stop_after_not_decreasing_loss_num = 5
         self.train_save_modulo = 10
+        self.train_shuffle_sentences = True
+        self.test_sentences_rate = 0.1
 
         self.inference_batch_size = 512
         self.inference_maximum_iterations = 10
 
         self.analyses_path = os.path.join('data', 'analyses.txt')
         self.max_source_sequence_length = 64 #
-        self.max_target_sequence_length = 16 #
+        self.max_target_sequence_length = 32 #

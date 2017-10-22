@@ -36,6 +36,7 @@ class AnalysesProcessor(object):
         return ['<UNK>']
 
     def get_root_from_analysis(self, analysis):
+        if pd.isnull(analysis): return analysis
         root = re.search(r'\w+', analysis, re.UNICODE)
         if root is not None:
             return root.group(0)
