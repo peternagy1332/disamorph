@@ -7,7 +7,7 @@ import numpy as np
 import itertools
 
 from data_processing.analyses_processor import AnalysesProcessor
-from utils import update_progress
+from utils import Utils
 
 
 class DataProcessor(object):

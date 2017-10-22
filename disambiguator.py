@@ -198,7 +198,7 @@ class Disambiguator(object):
                     window_probabilities.append(probabilities_in_sentence[probability_id])
 
                 window_combinations_in_sentence = [tuple(combination) for combination in windows_combinations_in_sentence[window_id]]
-                
+
                 windows_combinations_with_probabilities.append(zip(window_combinations_in_sentence, window_probabilities))
 
             yield windows_combinations_with_probabilities

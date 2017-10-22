@@ -1,8 +1,12 @@
 from disambiguator import Disambiguator
 from config.config import ModelConfiguration
+from utils import Utils
 
 
 def main():
+    utils = Utils()
+    utils.redirect_stdout('main-inference')
+
     model_configuration = ModelConfiguration()
 
     disambiguator = Disambiguator(model_configuration)

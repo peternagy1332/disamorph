@@ -44,7 +44,7 @@ class BuildInferenceModel(object):
 
     def __create_decoder(self, embedding_matrix, encoder_state):
         with tf.variable_scope('decoder'):
-            decoder_cell = tf.nn.rnn_cell.BasicLSTMCell(self.__config.num_cells)
+            decoder_rnn = self.__build_train_model.create_rnn()
 
             helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(
                 embedding_matrix,
@@ -53,7 +53,7 @@ class BuildInferenceModel(object):
 
             projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False, activation=tf.nn.softmax)
 
-            decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell,
+            decoder = tf.contrib.seq2seq.BasicDecoder(decoder_rnn,
                                                       helper,
                                                       encoder_state,
                                                       output_layer=projection_layer) #time_major=True

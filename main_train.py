@@ -5,9 +5,12 @@ from data_processing.data_processor import DataProcessor
 from disambiguator import Disambiguator
 from model.model_train import BuildTrainModel
 from train import MorphDisamTrainer
+from utils import Utils
 
 
 def main():
+    utils = Utils()
+    utils.redirect_stdout('main-train')
     model_configuration = ModelConfiguration()
 
     # Loading train data
@@ -36,17 +39,16 @@ def main():
     # Begin training
     morph_disam_trainer = MorphDisamTrainer(train_graph, model_configuration, model)
 
-    #morph_disam_trainer.train(train_batches)
+    morph_disam_trainer.train(train_batches)
 
     # Evaluating model
     disambiguator = Disambiguator(model_configuration)
 
     print('Evaluating model on train dataset...')
-    morph_disam_trainer.evaluate_model(disambiguator, train_dataframes)
+    morph_disam_trainer.evaluate_model(disambiguator, train_dataframes, 10)
 
     print('Evaluating model on test dataset...')
     morph_disam_trainer.evaluate_model(disambiguator, test_dataframes)
-
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from utils import update_progress
+from utils import Utils
 
 
 class MorphDisamTrainer(object):
@@ -59,7 +59,7 @@ class MorphDisamTrainer(object):
                         losses = []
 
                         for batch_id in range(total_batches):
-                            update_progress(batch_id, total_batches, 'Training on batches...')
+                            Utils.update_progress(batch_id, total_batches, 'Training on batches...')
                             summary_return, update_step_return, train_loss_return = sess.run(
                                 [merged_summary_op, update_step, train_loss],
                                 feed_dict={
@@ -68,7 +68,7 @@ class MorphDisamTrainer(object):
                                     self.__model.placeholders.decoder_outputs: train_batches.target_output_batches[batch_id]
                                 })
 
-                            update_progress(batch_id+1, total_batches, 'Training on batches...')
+                            Utils.update_progress(batch_id+1, total_batches, 'Training on batches...')
                             summary_writer.add_summary(summary_return, epoch_id * total_batches + batch_id)
                             losses.append(train_loss_return)
 
@@ -77,7 +77,7 @@ class MorphDisamTrainer(object):
                         if lowest_loss is None:
                             lowest_loss = avg_loss
 
-                        print('\n\tLosses -  min:', min(losses), ', max: ', max(losses), ', avg: ', avg_loss, '\n')
+                        print('\n\tLosses -  min: ' + str(round(min(losses),2))+ ', max: '+ str(round(max(losses),2)), ', avg: ' + str(round(avg_loss,2)), '\n')
 
                         if avg_loss < lowest_loss:
                             stopping_step = 0
@@ -94,11 +94,11 @@ class MorphDisamTrainer(object):
                             save_path = saver.save(sess, self.__config.train_files_save_model)
                             print('\tSAVED to: ', save_path)
 
-    def evaluate_model(self, disambiguator, sentence_dataframes):
+    def evaluate_model(self, disambiguator, sentence_dataframes, every_nth_sentence = None):
         accuracies = []
-        print('\t#{sentences}: ', len(sentence_dataframes))
+        print('\t#{sentences}: ', len(sentence_dataframes[::every_nth_sentence]))
         print('\tSenten.\t#{words}\tAccuracy')
-        for test_sentence_id, test_sentence_dataframe in enumerate(sentence_dataframes):
+        for test_sentence_id, test_sentence_dataframe in enumerate(sentence_dataframes[::every_nth_sentence]):
             words_to_disambiguate = test_sentence_dataframe['word'].tolist()  # Including <SOS>
 
             disambiguated_sentence = next(disambiguator.disambiguate_words_by_sentence_generator(words_to_disambiguate))
@@ -111,6 +111,6 @@ class MorphDisamTrainer(object):
 
             accuracy = 100 * matching_analyses / len(words_to_disambiguate)
             accuracies.append(accuracy)
-            print('\t'+str(test_sentence_id)+ '\t'+ str(len(correct_analyses))+ '\t'+ str(accuracy)+'%')
+            print('\t'+str(test_sentence_id)+ '\t'+ str(len(correct_analyses))+ '\t'+ str(round(accuracy,2))+'%')
 
-        print('\tAccuracies: min - '+ str(min(accuracies))+ '%\tmax - '+ str(max(accuracies))+ '%\t avg - '+ str(sum(accuracies)/len(accuracies))+'%')
+        print('\tAccuracies: min - '+ str(round(min(accuracies),2))+ '%\tmax - '+ str(round(max(accuracies),2))+ '%\t avg - '+ str(round(sum(accuracies)/len(accuracies),2))+'%')
