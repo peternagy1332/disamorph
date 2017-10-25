@@ -119,7 +119,8 @@ class Disambiguator(object):
                         )
 
                         # Combinations and probabilities in window
-                        yield windows_combinations_in_sentence, list(map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output))
+                        yield windows_combinations_in_sentence, list(map(lambda rnn_output: np.sum(rnn_output.max(axis=1)), final_outputs[0].rnn_output)) # log
+                        #yield windows_combinations_in_sentence, list(map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output)) # probability
 
                     else:
                         probabilities = []
@@ -147,7 +148,7 @@ class Disambiguator(object):
                                 }
                             )
 
-                            inference_batch_probabilities = list(map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output))
+                            inference_batch_probabilities = list(map(lambda rnn_output: np.sum(rnn_output.max(axis=1)), final_outputs[0].rnn_output))
                             # print('\tinference_batch_probabilities', len(inference_batch_probabilities))
                             probabilities.extend(inference_batch_probabilities)
 
@@ -203,9 +204,10 @@ class Disambiguator(object):
             disambiguated_combinations = []
             last_viterbi = viterbi_lists[-1]
 
-            argmax_combination_probability_tuple = reduce(lambda max, combination_probability_tuple: combination_probability_tuple if combination_probability_tuple[1]>max[1] else max, last_viterbi, (['???'],0))
+            argmax_combination_probability_tuple = reduce(lambda max, combination_probability_tuple: combination_probability_tuple if combination_probability_tuple[1]>max[1] else max, last_viterbi, (['???'],-100))
             disambiguated_combinations.append(list(argmax_combination_probability_tuple[0]))
             for viterbi in reversed(viterbi_lists[:-1]):
+                #print(argmax_combination_probability_tuple)
                 argmax_combination_probability_tuple = next(filter(lambda combination_probability_tuple: combination_probability_tuple[0][1:]==argmax_combination_probability_tuple[0][:-1], viterbi))
                 disambiguated_combinations.append(list(argmax_combination_probability_tuple[0]))
 

@@ -10,6 +10,7 @@ from utils import Utils
 
 def main():
     utils = Utils()
+    utils.start_stopwatch()
     utils.redirect_stdout('main-train')
     model_configuration = ModelConfiguration()
 
@@ -25,7 +26,7 @@ def main():
     if model_configuration.train_shuffle_sentences:
         shuffle(train_dataframes)
 
-    train_batches = train_data_processor.train_dataframes_to_batches(train_dataframes)
+    source_input_examples, target_input_examples, target_output_examples = train_data_processor.train_dataframes_to_batches(train_dataframes)
 
     # Building graph
     build_train_model = BuildTrainModel(model_configuration,
@@ -39,16 +40,18 @@ def main():
     # Begin training
     morph_disam_trainer = MorphDisamTrainer(train_graph, model_configuration, model)
 
-    #morph_disam_trainer.train(train_batches)
+    morph_disam_trainer.train(source_input_examples, target_input_examples, target_output_examples)
 
     # Evaluating model
     disambiguator = Disambiguator(model_configuration)
 
     print('Evaluating model on train dataset...')
-    morph_disam_trainer.evaluate_model(disambiguator, train_dataframes, 10)
+    morph_disam_trainer.evaluate_model(disambiguator, train_dataframes[:10])
 
     print('Evaluating model on test dataset...')
-    morph_disam_trainer.evaluate_model(disambiguator, test_dataframes)
+    morph_disam_trainer.evaluate_model(disambiguator, test_dataframes[:10])
+
+    utils.stop_stopwatch_and_print_running_time()
 
 if __name__ == '__main__':
     main()

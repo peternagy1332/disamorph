@@ -60,10 +60,11 @@ class BuildInferenceModel(object):
 
             helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(
                 embedding_matrix,
-                tf.fill([self.__config.inference_batch_size], self.__config.marker_start_of_sentence),
-                self.__config.marker_end_of_sentence)
+                tf.fill([self.__config.inference_batch_size], self.__config.marker_go),
+                self.__config.marker_end_of_sentence
+            )
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False, activation=tf.nn.softmax)
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), activation=tf.nn.softmax, use_bias=False)
 
             decoder_initial_state = decoder_rnn.zero_state(
                 self.__config.inference_batch_size, tf.float32) \
@@ -78,7 +79,9 @@ class BuildInferenceModel(object):
 
             # output_time_major=True
             final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(
-                decoder, maximum_iterations=self.__config.inference_maximum_iterations)
+                decoder, maximum_iterations=self.__config.inference_maximum_iterations,
+                output_time_major=False, swap_memory=True
+            )
 
             return final_outputs
 

@@ -22,13 +22,14 @@ class BuildTrainModel(object):
 
             encoder_outputs, encoder_state = self.create_encoder(embedding_matrix, placeholders.encoder_inputs)
 
-            logits = self.__create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
+            logits, output_sequences = self.__create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
 
-            Model = namedtuple('Model', ['placeholders', 'logits'])
+            Model = namedtuple('Model', ['placeholders', 'logits', 'output_sequences'])
 
             return Model(
                 placeholders=placeholders,
-                logits=logits
+                logits=logits,
+                output_sequences=output_sequences
             )
 
     def create_embedding(self):
@@ -38,15 +39,19 @@ class BuildTrainModel(object):
                                                dtype=tf.float32)
             return embedding_matrix
 
-    def create_rnn(self):
-        cell_stack = []
-        for _ in range(self.__config.hidden_layer_count):
-            if self.__config.hidden_layer_cell_type == 'LSTM':
-                cell_stack.append(tf.nn.rnn_cell.BasicLSTMCell(self.__config.hidden_layer_cells))
-            elif self.__config.hidden_layer_cell_type == 'GRU':
-                cell_stack.append(tf.nn.rnn_cell.GRUCell(self.__config.hidden_layer_cells))
 
-        return tf.nn.rnn_cell.MultiRNNCell(cells=cell_stack)
+    def create_rnn(self, half=False):
+        cells = []
+
+        layers = self.__config.hidden_layer_count if half==False else self.__config.hidden_layer_count // 2
+
+        for i in range(layers):
+            if self.__config.hidden_layer_cell_type == 'LSTM':
+                cells.append(tf.nn.rnn_cell.BasicLSTMCell(self.__config.hidden_layer_cells))
+            elif self.__config.hidden_layer_cell_type == 'GRU':
+                cells.append(tf.nn.rnn_cell.GRUCell(self.__config.hidden_layer_cells))
+
+        return tf.nn.rnn_cell.MultiRNNCell(cells)
 
     def __create_placeholders(self):
         Placeholders = namedtuple('Placeholders', ['encoder_inputs', 'decoder_inputs', 'decoder_outputs'])
@@ -76,21 +81,36 @@ class BuildTrainModel(object):
     def create_encoder(self, embedding_matrix, encoder_inputs):
         with tf.variable_scope('encoder'):
 
-            encoder_rnn = self.create_rnn()
+            forward_cells = self.create_rnn(True)
+            backward_cells = self.create_rnn(True)
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, encoder_inputs)
 
-            encoder_outputs, encoder_state = tf.nn.dynamic_rnn(
-                encoder_rnn, embedding_input,
+            o, s = tf.nn.bidirectional_dynamic_rnn(
+                forward_cells, backward_cells, embedding_input, dtype=tf.float32,
                 sequence_length=tf.count_nonzero(encoder_inputs, axis=1, dtype=tf.int32),
-                dtype=tf.float32,
-                time_major=False)
+                time_major=False
+            )
+
+            encoder_outputs = tf.concat(o, -1)
+            encoder_state = []
+            for i in range(self.__config.hidden_layer_count // 2):
+                encoder_state.append(s[0][i])
+                encoder_state.append(s[1][i])
+            encoder_state = tuple(encoder_state)
+
+            # encoder_outputs, encoder_state = tf.nn.dynamic_rnn(
+            #     encoder_rnn, embedding_input,
+            #     sequence_length=tf.count_nonzero(encoder_inputs, axis=1, dtype=tf.int32),
+            #     dtype=tf.float32,
+            #     time_major=False
+            # )
 
             return encoder_outputs, encoder_state
 
     def __create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders):
         with tf.variable_scope('decoder'):
-            decoder_rnn = self.create_rnn()
+            decoder_rnn = self.create_rnn(False)
 
             decoder_inputs_sequence_length = tf.count_nonzero(placeholders.decoder_inputs, axis=1, dtype=tf.int32)
 
@@ -110,9 +130,7 @@ class BuildTrainModel(object):
 
             projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
 
-            decoder_initial_state = decoder_rnn.zero_state(
-                self.__config.batch_size, tf.float32)\
-                .clone(cell_state=encoder_state)
+            decoder_initial_state = decoder_rnn.zero_state(self.__config.batch_size, tf.float32).clone(cell_state=encoder_state)
 
             decoder = tf.contrib.seq2seq.BasicDecoder(
                 cell=decoder_rnn,
@@ -122,11 +140,15 @@ class BuildTrainModel(object):
             )
 
             # output_time_major=True
-            final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(decoder)
+            final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(
+                decoder #, output_time_major=False, swap_memory=True
+            )
 
             logits = final_outputs.rnn_output
+            output_sequences = final_outputs.sample_id
 
             # label_first_dim(self.batch_size * self.max_target_sequence_length) = logit_first_dim(self.batch_size * self.max_target_Sequence_length)
-            logits = tf.map_fn(lambda logit: tf.concat([logit, tf.zeros([self.__config.max_target_sequence_length-tf.reduce_max(decoder_inputs_sequence_length), len(self.__inverse_vocabulary)], dtype=tf.float32)], axis=0), logits)
+            #vertical_padding = tf.zeros([self.__config.max_target_sequence_length-tf.reduce_max(decoder_inputs_sequence_length), len(self.__inverse_vocabulary)], dtype=tf.float32)
+            #logits = tf.map_fn(lambda logit: tf.concat([logit, vertical_padding], axis=0), logits)
 
-            return logits
+            return logits, output_sequences

@@ -86,10 +86,15 @@ class DataProcessor(object):
 
         for combination in combinations_in_window:
             combination = list(combination)
+            try:
+                analyses_divided = [[self.__config.marker_analysis_divider]] * (len(combination) * 2 - 1)
+                analyses_divided[0::2] = combination
+                flattened_list = list(itertools.chain.from_iterable(analyses_divided))
+            except TypeError:
+                print(combinations_in_window)
+                print(combination)
+                flattened_list = []
 
-            analyses_divided = [[self.__config.marker_analysis_divider]] * (len(combination) * 2 - 1)
-            analyses_divided[0::2] = combination
-            flattened_list = list(itertools.chain.from_iterable(analyses_divided))
 
             if EOS_needed:
                 EOS_appended = flattened_list + [self.__config.marker_end_of_sentence]
@@ -136,18 +141,20 @@ class DataProcessor(object):
         if self.__config.batch_size>len(source_input_examples):
             raise ValueError("batch_size ("+str(self.__config.batch_size)+") > #{examples}="+str(len(source_input_examples)))
 
-        TrainBatches = namedtuple('Dataset', ['source_input_batches', 'target_input_batches', 'target_output_batches'])
+        # TrainBatches = namedtuple('Dataset', ['source_input_batches', 'target_input_batches', 'target_output_batches'])
+        #
+        # train_batches = TrainBatches(
+        #     source_input_batches=[source_input_examples[i:i + self.__config.batch_size] for i in range(source_input_examples.shape[0] // self.__config.batch_size)],
+        #     target_input_batches=[target_input_examples[i:i + self.__config.batch_size] for i in range(target_input_examples.shape[0] // self.__config.batch_size)],
+        #     target_output_batches=[target_output_examples[i:i + self.__config.batch_size] for i in range(target_output_examples.shape[0] // self.__config.batch_size)]
+        # )
+        #
+        # print('\t#{batches}: ', len(train_batches.source_input_batches))
+        # print('\t#{examples}: ', len(train_batches.source_input_batches)*self.__config.batch_size)
+        #
+        # return train_batches
 
-        train_batches = TrainBatches(
-            source_input_batches=[source_input_examples[i:i + self.__config.batch_size] for i in range(source_input_examples.shape[0] // self.__config.batch_size)],
-            target_input_batches=[target_input_examples[i:i + self.__config.batch_size] for i in range(target_input_examples.shape[0] // self.__config.batch_size)],
-            target_output_batches=[target_output_examples[i:i + self.__config.batch_size] for i in range(target_output_examples.shape[0] // self.__config.batch_size)]
-        )
-
-        print('\t#{batches}: ', len(train_batches.source_input_batches))
-        print('\t#{examples}: ', len(train_batches.source_input_batches)*self.__config.batch_size)
-
-        return train_batches
+        return source_input_examples, target_input_examples, target_output_examples
 
     def __sentence_dataframe_to_examples(self, sentence_dataframe):
         # print('def __sentence_dataframe_to_examples(self, sentence_dataframe):')
@@ -159,7 +166,7 @@ class DataProcessor(object):
             source_window_dataframe = sentence_dataframe.loc[analysis_id:analysis_id + self.__config.window_length - 1]
             target_sequence = sentence_dataframe.loc[analysis_id+self.__config.window_length]
             source_sequence = self.format_window_word_analyses([source_window_dataframe['correct_analysis_vector'].tolist() + [target_sequence['root_id']]], False)
-            target_input_sequence = self.format_window_word_analyses([[[self.__config.marker_start_of_sentence] + target_sequence['correct_analysis_vector']]], False)
+            target_input_sequence = self.format_window_word_analyses([[[self.__config.marker_go] + target_sequence['correct_analysis_vector']]], False)
             target_output_sequence = self.format_window_word_analyses([[target_sequence['correct_analysis_vector']]])
 
             source_input_sequences.append(source_sequence[0])
