@@ -136,3 +136,5 @@ modules.xml
 # End of https://www.gitignore.io/api/pycharm,pycharm+all,pycharm+iml
 
 data/szeged/*
+data/szeged-judit/*
+__pycache__

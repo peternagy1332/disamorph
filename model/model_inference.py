@@ -1,7 +1,6 @@
 from collections import namedtuple
 from tensorflow.python.layers import core as layers_core
 import tensorflow as tf
-import numpy as np
 
 class BuildInferenceModel(object):
     def __init__(self, model_configuration, inverse_vocabulary, build_train_model):
@@ -75,7 +74,7 @@ class BuildInferenceModel(object):
                 helper=helper,
                 initial_state=decoder_initial_state,
                 output_layer=projection_layer
-            ) # time_major=False
+            )
 
             # output_time_major=True
             final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(

@@ -4,7 +4,7 @@ delfin
 cica
 kutya
 madár
-tengerimalac
+malac
 hörcsög
 papagáj
 sikló
@@ -12,10 +12,9 @@ kenguru
 koala
 pingvin
 medve
-jegesmedve
 zsiráf
 zebra
-oroszlán
+orosz
 gepárd
 leopárd
 mamut
@@ -27,7 +26,7 @@ emu
 sas
 héja
 holló
-krokodil
+kroki
 cápa
 bálna
 hal

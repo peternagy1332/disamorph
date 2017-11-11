@@ -25,3 +25,8 @@ grep -oh '\[[^]]*\]' ./* | sort | uniq -c > tags.txt
 ```bash
 cat ./* | cut -f1 | sort | uniq | hfst-lookup --cascade=composition ../../emMorph/hfst/hu.hfstol -s | grep . | cut -f1,2 > ../analyses.txt
 ```
+
+### Non-unique words without correct analysis
+```
+cat * | cut -f9 | sort | grep '^$' | wc -l
+```

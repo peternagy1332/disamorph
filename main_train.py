@@ -1,55 +1,52 @@
-from random import shuffle
-
-from config.config import ModelConfiguration
+import argparse
+from random import seed
+from config import ModelConfiguration
+from data_processing.analyses_processor import AnalysesProcessor
 from data_processing.data_processor import DataProcessor
-from disambiguator import Disambiguator
 from model.model_train import BuildTrainModel
-from train import MorphDisamTrainer
+from seq2seq_trainer import Seq2SeqTrainer
 from utils import Utils
 
 
 def main():
-    utils = Utils()
+    parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
+    parser.add_argument('-cfg', '--default-config', default=None)
+    parser.add_argument('-m', '--model-directory', default=None)
+
+    model_configuration = ModelConfiguration(parser)
+    utils = Utils(model_configuration)
     utils.start_stopwatch()
     utils.redirect_stdout('main-train')
-    model_configuration = ModelConfiguration()
 
-    # Loading train data
-    train_data_processor = DataProcessor(model_configuration)
+    model_configuration.printConfig()
 
-    sentence_daraframes = train_data_processor.get_sentence_dataframes()
+    # Setting seed
+    if model_configuration.data_random_seed is not None:
+        seed(model_configuration.data_random_seed)
 
+    # Loading sentence dataframes
+    analyses_processor = AnalysesProcessor(model_configuration)
+    data_processor = DataProcessor(model_configuration, analyses_processor)
+
+    sentence_daraframes = data_processor.get_sentence_dicts()
+
+    # All dataframes -> train dataframes
     test_dataframe_id = int(round(len(sentence_daraframes)*model_configuration.test_sentences_rate))
-    test_dataframes = sentence_daraframes[-test_dataframe_id:]
-
+    # test_dataframes = sentence_daraframes[-test_dataframe_id:]
     train_dataframes = sentence_daraframes[:-test_dataframe_id]
-    if model_configuration.train_shuffle_sentences:
-        shuffle(train_dataframes)
 
-    source_input_examples, target_input_examples, target_output_examples = train_data_processor.train_dataframes_to_batches(train_dataframes)
 
     # Building graph
     build_train_model = BuildTrainModel(model_configuration,
-                                        train_data_processor.vocabulary,
-                                        train_data_processor.inverse_vocabulary)
-
-    train_graph = build_train_model.get_train_graph()
+                                        analyses_processor.vocabulary,
+                                        analyses_processor.inverse_vocabulary)
 
     model = build_train_model.create_model()
 
     # Begin training
-    morph_disam_trainer = MorphDisamTrainer(train_graph, model_configuration, model)
+    morph_disam_trainer = Seq2SeqTrainer(build_train_model.train_graph, model_configuration, model)
 
-    morph_disam_trainer.train(source_input_examples, target_input_examples, target_output_examples)
-
-    # Evaluating model
-    disambiguator = Disambiguator(model_configuration)
-
-    print('Evaluating model on train dataset...')
-    morph_disam_trainer.evaluate_model(disambiguator, train_dataframes[:10])
-
-    print('Evaluating model on test dataset...')
-    morph_disam_trainer.evaluate_model(disambiguator, test_dataframes[:10])
+    morph_disam_trainer.train(data_processor, train_dataframes)
 
     utils.stop_stopwatch_and_print_running_time()
 

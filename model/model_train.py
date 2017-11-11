@@ -9,13 +9,10 @@ class BuildTrainModel(object):
         self.__vocabulary = vocabulary
         self.__inverse_vocabulary = inverse_vocabulary
 
-        self.__train_graph = tf.Graph()
-
-    def get_train_graph(self):
-        return self.__train_graph
+        self.train_graph = tf.Graph()
 
     def create_model(self):
-        with self.__train_graph.as_default():
+        with self.train_graph.as_default():
             placeholders = self.__create_placeholders()
 
             embedding_matrix = self.create_embedding()
@@ -24,12 +21,13 @@ class BuildTrainModel(object):
 
             logits, output_sequences = self.__create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
 
-            Model = namedtuple('Model', ['placeholders', 'logits', 'output_sequences'])
+            Model = namedtuple('Model', ['placeholders', 'logits', 'output_sequences', 'embedding_matrix'])
 
             return Model(
                 placeholders=placeholders,
                 logits=logits,
-                output_sequences=output_sequences
+                output_sequences=output_sequences,
+                embedding_matrix=embedding_matrix
             )
 
     def create_embedding(self):
@@ -46,10 +44,21 @@ class BuildTrainModel(object):
         layers = self.__config.hidden_layer_count if half==False else self.__config.hidden_layer_count // 2
 
         for i in range(layers):
+            if self.__config.network_activation is not None:
+                activation = getattr(tf.nn, self.__config.network_activation)
+            else:
+                activation = None
+
             if self.__config.hidden_layer_cell_type == 'LSTM':
-                cells.append(tf.nn.rnn_cell.BasicLSTMCell(self.__config.hidden_layer_cells))
+                cell = tf.nn.rnn_cell.BasicLSTMCell(self.__config.hidden_layer_cells, activation=activation)
             elif self.__config.hidden_layer_cell_type == 'GRU':
-                cells.append(tf.nn.rnn_cell.GRUCell(self.__config.hidden_layer_cells))
+                cell = tf.nn.rnn_cell.GRUCell(self.__config.hidden_layer_cells, activation=activation)
+
+            if self.__config.network_dropout_keep_probability is not None:
+                cell = tf.contrib.rnn.DropoutWrapper(cell, input_keep_prob=self.__config.network_dropout_keep_probability)
+
+            cells.append(cell)
+
 
         return tf.nn.rnn_cell.MultiRNNCell(cells)
 
@@ -128,7 +137,7 @@ class BuildTrainModel(object):
 
             helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length, time_major=False)
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False) # , activation=tf.nn.softmax
 
             decoder_initial_state = decoder_rnn.zero_state(self.__config.batch_size, tf.float32).clone(cell_state=encoder_state)
 
