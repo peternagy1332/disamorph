@@ -58,21 +58,34 @@ class DataProcessor(object):
 
                     sentence_dict['word'].append(row[0])
 
-                    if '+?' in row[8]:
-                        if self.__config.train_rebuild_vocabulary_file:
-                            self.__analyses_processor.vocabulary_file.write(row[8] + os.linesep)
-                        morphemes_and_tags = [row[8]]
+                    # No correct analysis available
+                    if '+?' == row[8][-2:]:
+                        if self.__config.data_example_resolution == 'morpheme':
+                            self.__analyses_processor.extend_vocabulary(row[8])
+                            # Actually no tags
+                            features_and_tags = [row[8]]
+                        elif self.__config.data_example_resolution == 'character':
+                            # Actually no tags
+                            features_and_tags = list(row[8][:-2])
+                            for character in features_and_tags:
+                                self.__analyses_processor.extend_vocabulary(character)
                     else:
                         tape = self.__analyses_processor.raw_tape_to_tape(row[8])
-                        morphemes_and_tags = self.__analyses_processor.tape_to_morphemes_and_tags(tape)
+                        if self.__config.data_example_resolution == 'morpheme':
+                            features_and_tags = self.__analyses_processor.tape_to_morphemes_and_tags(tape)
+                        elif self.__config.data_example_resolution == 'character':
+                            features_and_tags = tape
 
-                    sentence_dict['correct_analysis_vector'].append(self.__analyses_processor.lookup_morphemes_and_tags_to_ids(morphemes_and_tags))
-                    sentence_dict['correct_analysis'].append("".join(morphemes_and_tags))
+                    sentence_dict['correct_analysis_vector'].append(self.__analyses_processor.lookup_morphemes_and_tags_to_ids(features_and_tags))
+                    sentence_dict['correct_analysis'].append("".join(features_and_tags))
+
 
                     read_rows+=1
                     if self.__config.rows_to_read_num is not None and read_rows>=self.__config.rows_to_read_num:
                         should_stop = True
                         break
+
+        self.__analyses_processor.write_vocabulary_file()
 
         print('\t#{read rows}:', read_rows)
         print('\t#{total sentences}:',len(sentence_dataframes))
@@ -123,11 +136,15 @@ class DataProcessor(object):
             for file in sorted(glob.glob(os.path.join(self.__config.train_matrices, 'target_input', 'sentence_target_input_examples_*.npy'))):
                 sentence_target_input_examples_matrix = np.load(file)
                 self.__sentence_target_input_examples_matrices.append(sentence_target_input_examples_matrix)
+                if sentence_target_input_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+                    print(sentence_target_input_examples_matrix)
             print('\tLOADED: self.__sentence_target_input_examples_matrices')
 
             for file in sorted(glob.glob(os.path.join(self.__config.train_matrices, 'target_output', 'sentence_target_output_examples_*.npy'))):
                 sentence_target_output_examples_matrix = np.load(file)
                 self.__sentence_target_output_examples_matrices.append(sentence_target_output_examples_matrix)
+                if sentence_target_output_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+                    print(sentence_target_output_examples_matrix)
             print('\tLOADED: self.__sentence_target_output_examples_matrices')
 
         else:
@@ -142,11 +159,26 @@ class DataProcessor(object):
                 sentence_target_input_examples_matrix = np.matrix(sentence_target_input_examples)
                 sentence_target_output_examples_matrix = np.matrix(sentence_target_output_examples)
 
+                if sentence_source_input_examples_matrix.shape[1] != self.__config.max_source_sequence_length:
+                    print('print(sentence_source_input_examples_matrix)')
+                    print(sentence_source_input_examples_matrix.shape)
+                    print(sentence_source_input_examples_matrix)
+
+                if sentence_target_input_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+                    print('print(sentence_target_input_examples_matrix)')
+                    print(sentence_target_input_examples_matrix.shape)
+                    print(sentence_target_input_examples_matrix)
+
+                if sentence_target_output_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+                    print('print(sentence_target_output_examples_matrix)')
+                    print(sentence_target_output_examples_matrix.shape)
+                    print(sentence_target_output_examples_matrix)
+
                 # TODO: Check if max_*_sequence_length is too low (matrix contains list)
 
-                np.save(os.path.join(self.__config.train_matrices, 'source_input', 'sentence_source_input_examples_'+str(sentence_id)+'.npy'), sentence_source_input_examples_matrix)
-                np.save(os.path.join(self.__config.train_matrices, 'target_input', 'sentence_target_input_examples_'+str(sentence_id)+'.npy'), sentence_target_input_examples_matrix)
-                np.save(os.path.join(self.__config.train_matrices, 'target_output', 'sentence_target_output_examples_'+str(sentence_id)+'.npy'), sentence_target_output_examples_matrix)
+                np.save(os.path.join(self.__config.train_matrices, 'source_input', 'sentence_source_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_source_input_examples_matrix)
+                np.save(os.path.join(self.__config.train_matrices, 'target_input', 'sentence_target_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_input_examples_matrix)
+                np.save(os.path.join(self.__config.train_matrices, 'target_output', 'sentence_target_output_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_output_examples_matrix)
 
                 sentence_id += 1
 

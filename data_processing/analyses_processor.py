@@ -2,13 +2,14 @@ import re
 import subprocess
 import os
 
+import sys
+
 
 class AnalysesProcessor(object):
     def __init__(self, model_configuration):
         self.__config = model_configuration
 
-        if self.__config.train_rebuild_vocabulary_file:
-            self.vocabulary_file = open(os.path.join('data', 'vocabulary_cache_long.tsv'), 'w', encoding='utf8')
+        self.__vocabulary_set = set()
 
         self.__read_and_build_vocabulary()
         self.__hfst_cache_vectorized = dict()
@@ -17,8 +18,13 @@ class AnalysesProcessor(object):
     def __read_and_build_vocabulary(self):
         print('def __read_and_build_vocabulary(self):')
         features = []
-        with open(self.__config.train_vocabulary_cache, encoding='utf-8') as f: features.extend(f.read().splitlines())
-        self.vocabulary = dict(zip(features, range(self.__config.vocabulary_start_index, len(features) + self.__config.vocabulary_start_index+1)))
+        if os.path.isfile(self.__config.data_vocabulary_file):
+            with open(self.__config.data_vocabulary_file, 'r', encoding='utf-8') as f: features.extend(f.read().splitlines())
+            self.vocabulary = dict(zip(features, range(self.__config.vocabulary_start_index, len(features) + self.__config.vocabulary_start_index+1)))
+        else:
+            print('\tVocabulary file not found ('+self.__config.data_vocabulary_file+'), rebuild is going to be performed.')
+            self.__config.train_rebuild_vocabulary_file = True
+            self.vocabulary = dict()
 
         self.vocabulary['<SOS>'] = self.__config.marker_start_of_sentence
 
@@ -60,15 +66,34 @@ class AnalysesProcessor(object):
             if len(err)>0:
                 print(err.decode())
 
-            if '+?' in raw_decoded_output:
-                vectorized_analyses_for_word = [[self.vocabulary.get(raw_decoded_output.rstrip(), self.__config.marker_unknown)]]
+            vectorized_analyses_for_word = None
+
+            if '+?' == raw_decoded_output[-2:]:
+                unknown_analysis = raw_decoded_output.rstrip()
+                if self.__config.data_example_resolution == 'morpheme':
+                    vectorized_analyses_for_word = [[self.vocabulary.get(unknown_analysis, self.__config.marker_unknown)]]
+                elif self.__config.data_example_resolution == 'character':
+                    vectorized_analyses_for_word = []
+                    vectorized_analysis_for_word = []
+                    for character in unknown_analysis:
+                        vectorized_analysis_for_word.append(self.vocabulary.get(character, self.__config.marker_unknown))
+                    vectorized_analyses_for_word.append(vectorized_analysis_for_word)
             else:
                 raw_tapes_of_analyses = raw_decoded_output.splitlines()
                 raw_tapes_of_analyses = [raw_tape_of_analysis.rstrip() for raw_tape_of_analysis in raw_tapes_of_analyses]
                 tapes_of_analyses = [self.raw_tape_to_tape(raw_tape) for raw_tape in raw_tapes_of_analyses]
-                morphemes_and_tags_of_analyes = [self.tape_to_morphemes_and_tags(tape) for tape in tapes_of_analyses]
 
-                vectorized_analyses_for_word = [self.lookup_morphemes_and_tags_to_ids(morphemes_and_tags) for morphemes_and_tags in morphemes_and_tags_of_analyes]
+                if self.__config.data_example_resolution == 'morpheme':
+                    morphemes_and_tags_of_analyes = [self.tape_to_morphemes_and_tags(tape) for tape in tapes_of_analyses]
+                    vectorized_analyses_for_word = [self.lookup_morphemes_and_tags_to_ids(morphemes_and_tags) for morphemes_and_tags in morphemes_and_tags_of_analyes]
+                elif self.__config.data_example_resolution == 'character':
+                    vectorized_analyses_for_word = []
+                    for tape in tapes_of_analyses:
+                        vectorized_analysis_for_word = self.lookup_morphemes_and_tags_to_ids(tape)
+                        vectorized_analyses_for_word.append(vectorized_analysis_for_word)
+
+            if vectorized_analyses_for_word is None:
+                raise ValueError('Cannot vectorize HFST output "'+raw_decoded_output+'". Check data_example_resolution in config!')
 
             self.__hfst_cache_vectorized.setdefault(word, vectorized_analyses_for_word)
 
@@ -117,7 +142,6 @@ class AnalysesProcessor(object):
 
             self.__hfst_cache.setdefault(word, analyses_for_word)
 
-
         return analyses_for_word
 
     def raw_tape_to_tape(self, raw_tape):
@@ -127,8 +151,12 @@ class AnalysesProcessor(object):
             tape_outputs = part.split(':')
             if len(tape_outputs) > 1:
                     tape.append(":".join(tape_outputs[1:]))
-        return tape
 
+        if self.__config.train_rebuild_vocabulary_file and self.__config.data_example_resolution == 'character':
+            for character_or_tag in tape:
+                self.__vocabulary_set.add(character_or_tag)
+
+        return tape
 
     def tape_to_morphemes_and_tags(self, tape):
         morphemes_and_tags = []
@@ -142,17 +170,32 @@ class AnalysesProcessor(object):
             else:
                 morpheme_buffer+=cell
 
-        if len(morpheme_buffer) >0:
+        if len(morpheme_buffer) > 0:
             morphemes_and_tags.append(morpheme_buffer)
 
         if self.__config.train_rebuild_vocabulary_file:
             for morpheme_or_tag in morphemes_and_tags:
-                self.vocabulary_file.write(morpheme_or_tag+os.linesep)
+                self.__vocabulary_set.add(morpheme_or_tag)
 
         return morphemes_and_tags
 
+    def extend_vocabulary(self, feature):
+        if self.__config.train_rebuild_vocabulary_file:
+            self.__vocabulary_set.add(feature)
+
+    def write_vocabulary_file(self):
+        print('def write_vocabulary_file(self):')
+        if self.__config.train_rebuild_vocabulary_file:
+            with open(self.__config.data_vocabulary_file, 'w', encoding='utf8') as vocabulary_file:
+                vocabulary_file.writelines(map(lambda feature: feature+os.linesep, self.__vocabulary_set))
+            print('\tVocabulary file flushed:',self.__config.data_vocabulary_file)
+            print('\tPlease restart the application.')
+            sys.exit()
+        else:
+            print('\tUsing existing vocabulary file:',self.__config.data_vocabulary_file)
+
+
     def lookup_morphemes_and_tags_to_ids(self, morphemes_and_tags_list):
-        # TODO: unk tömbben
         return [self.vocabulary.get(morpheme_or_tag, self.__config.marker_unknown) for morpheme_or_tag in morphemes_and_tags_list]
 
     def lookup_ids_to_morphemes_and_tags(self, ids_list):

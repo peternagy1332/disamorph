@@ -18,7 +18,7 @@ class Logger(object):
         if '\r' not in message:
             self.run_log_file.write(message)
 
-        if '\r' in message and message.count('=') == 60:
+        if '\r' in message and message.count('=') == 30:
             self.run_log_file.write(message + os.linesep)
 
     def flush(self):
@@ -63,7 +63,7 @@ class Utils(object):
         diffS = (diffM - Minutes) * 60
         Seconds = int(diffS)
 
-        print("Running took ", Days, "days;", str(Hours)+":"+str(Minutes)+":"+str(Seconds))
+        print("Running took ", Days, "days;", str(Hours).zfill(2)+":"+str(Minutes).zfill(2)+":"+str(Seconds).zfill(2))
 
     @staticmethod
     def fullvars(obj):

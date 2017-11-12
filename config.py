@@ -2,9 +2,7 @@ import datetime
 import os
 
 import numpy as np
-import pandas as pd
 import operator
-import argparse
 
 # Silence TensorFlow
 import time
@@ -20,12 +18,8 @@ from utils import Utils
 
 np.set_printoptions(linewidth=200, precision=2)
 
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
-
 class ModelConfiguration(object):
-    __slots__ = ('train_vocabulary_cache', 'train_files_corpus', 'train_save_modulo', 'train_matrices',
+    __slots__ = ('train_files_corpus', 'train_save_modulo', 'train_matrices',
                  'train_early_stop_after_not_decreasing_loss_num', 'train_shuffle_sentences', 'train_epochs', 'train_loss_optimizer', 'train_loss_optimizer_kwargs',
                  'train_decay_rate', 'train_decay_steps', 'train_continue_previous', 'train_decaying_learning_rate', 'train_decay_type', 'train_shuffle_examples_in_batches',
                  'embedding_labels_metadata', 'network_dropout_keep_probability', 'network_activation',
@@ -37,7 +31,7 @@ class ModelConfiguration(object):
 
                  'marker_padding', 'marker_analysis_divider', 'marker_start_of_sentence', 'marker_end_of_sentence', 'marker_unknown', 'marker_go',
 
-                 'data_random_seed',
+                 'data_random_seed', 'data_example_resolution', 'data_vocabulary_file',
                  'max_source_sequence_length', 'max_target_sequence_length', 'inference_batch_size', 'inference_maximum_iterations', 'analyses_path',
                  'transducer_path')
 
@@ -47,7 +41,6 @@ class ModelConfiguration(object):
 
         settings = {
             'default_args': {
-                'model_directory': os.path.join(base_path, 'logs', 'model-'+datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')),
                 'default_config': os.path.join(base_path, 'configs','default_config.yaml')
             },
             'model_name': 'saved_model.ckpt',
@@ -59,29 +52,46 @@ class ModelConfiguration(object):
         if args.default_config is None:
             args.default_config = settings['default_args']['default_config']
 
-        if args.model_directory is None:
-            args.model_directory = settings['default_args']['model_directory']
-
         with open(args.default_config, 'r', encoding='utf8') as default_config_file:
             default_config = yaml.safe_load(default_config_file)
 
-        # Already existing model
-        config_file_path = os.path.join(args.model_directory, settings['config_name'])
-        if os.path.exists(args.model_directory) and os.path.isdir(args.model_directory):
-            with open(config_file_path, 'r', encoding='utf8') as model_configuration_file:
-                model_configuration = yaml.safe_load(model_configuration_file)
-                model_configuration = {**default_config, **model_configuration}
-            self.train_continue_previous = True
-        else:
-            # New model
-            os.makedirs(args.model_directory)
-            with open(config_file_path, 'w', encoding='utf8') as model_configuration_file:
-                yaml.dump(default_config, model_configuration_file, default_flow_style=False)
-            model_configuration = default_config
-            self.train_continue_previous = False
 
-        self.model_directory = args.model_directory
+        # New model
+        if args.model_directory is None:
+            new_dir_name = default_config['network']['hidden_layer_cell_type']+'x'+\
+                           str(default_config['network']['hidden_layer_count'])+'x'+\
+                           str(default_config['network']['hidden_layer_cells'])+'x'+\
+                           default_config['train']['loss_optimizer'][:-9]+'x'+\
+                           default_config['data']['example_resolution'][:4]+'x'+\
+                           datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+
+            self.model_directory = os.path.join(base_path, 'saved_models', new_dir_name)
+
+            os.makedirs(self.model_directory)
+
+            with open(os.path.join(self.model_directory, settings['config_name']), 'w', encoding='utf8') as model_configuration_file:
+                yaml.dump(default_config, model_configuration_file, default_flow_style=False)
+
+            model_configuration = default_config
+
+            self.train_continue_previous = False
+        else:
+            # Already existing model
+            self.model_directory = args.model_directory
+            if os.path.exists(self.model_directory) and os.path.isdir(self.model_directory):
+                with open(os.path.join(args.model_directory, settings['config_name']), 'r', encoding='utf8') as model_configuration_file:
+                    model_configuration = yaml.safe_load(model_configuration_file)
+                    model_configuration = {**default_config, **model_configuration}
+                self.train_continue_previous = True
+            else:
+                raise ValueError('Model does not exist:', args.model_directory)
+
         self.model_name = settings['model_name']
+
+        if 'example_resolution' in model_configuration['data']:self.data_example_resolution = model_configuration['data']['example_resolution']
+        else: self.data_example_resolution = 'morpheme'
+
+        self.data_vocabulary_file = os.path.join(base_path, 'data', 'vocabulary_'+model_configuration['data']['example_resolution']+'.tsv')
 
         self.embedding_size = model_configuration['network']['embedding_size']
         self.batch_size = model_configuration['train']['batch_size']
@@ -125,10 +135,9 @@ class ModelConfiguration(object):
         self.train_decay_steps = model_configuration['train']['decay_steps']
         self.train_decay_rate = model_configuration['train']['decay_rate']
 
-        self.train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'])
+        self.train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'], model_configuration['data']['example_resolution'])
         self.train_rebuild_vocabulary_file = model_configuration['data']['rebuild_vocabulary_file']
         self.train_epochs = model_configuration['train']['epochs']
-        self.train_vocabulary_cache = os.path.join(base_path,model_configuration['data']['vocabulary_cache'])
         self.train_files_corpus = os.path.join(base_path, model_configuration['data']['train_dataset'])
         self.train_early_stop_after_not_decreasing_loss_num = model_configuration['train']['early_stop_after_not_decreasing_loss_num']
         self.train_save_modulo = model_configuration['train']['save_modulo']
@@ -145,7 +154,8 @@ class ModelConfiguration(object):
 
     def printConfig(self):
         print('%90s' % ('Global configurations'))
-        print("%80s | %s" % ('Value', 'Key'))
-        print('-'*160)
+        print("%-50s\t%s" % ('Key', 'Value'))
+        print('-'*100)
         for k, v in sorted(Utils.fullvars(self).items(), key=operator.itemgetter(0)):
-            print("%80s : %s" % (v, k))
+            print("%-50s\t%s" % (k, v))
+        print('-' * 100)
