@@ -128,7 +128,7 @@ class AnalysesProcessor(object):
             if len(err)>0:
                 print(err.decode())
 
-            if '+?' in raw_decoded_output:
+            if '+?' == raw_decoded_output[-2:]:
                 analyses_for_word = [raw_decoded_output.rstrip()]
             else:
                 raw_tapes_of_analyses = raw_decoded_output.splitlines()
@@ -163,7 +163,7 @@ class AnalysesProcessor(object):
         morpheme_buffer = ''
         for cell in tape:
             if re.match(r'\[[^]]*\]', cell, re.UNICODE):
-                if len(morpheme_buffer)>0:
+                if len(morpheme_buffer) > 0:
                     morphemes_and_tags.append(morpheme_buffer)
                     morpheme_buffer = ''
                 morphemes_and_tags.append(cell)
@@ -187,7 +187,7 @@ class AnalysesProcessor(object):
         print('def write_vocabulary_file(self):')
         if self.__config.train_rebuild_vocabulary_file:
             with open(self.__config.data_vocabulary_file, 'w', encoding='utf8') as vocabulary_file:
-                vocabulary_file.writelines(map(lambda feature: feature+os.linesep, self.__vocabulary_set))
+                vocabulary_file.writelines(map(lambda feature: feature+os.linesep, sorted(self.__vocabulary_set)))
             print('\tVocabulary file flushed:',self.__config.data_vocabulary_file)
             print('\tPlease restart the application.')
             sys.exit()

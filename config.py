@@ -58,12 +58,12 @@ class ModelConfiguration(object):
 
         # New model
         if args.model_directory is None:
-            new_dir_name = default_config['network']['hidden_layer_cell_type']+'x'+\
+            new_dir_name = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')+'x'+\
+                           default_config['network']['hidden_layer_cell_type']+'x'+\
                            str(default_config['network']['hidden_layer_count'])+'x'+\
                            str(default_config['network']['hidden_layer_cells'])+'x'+\
                            default_config['train']['loss_optimizer'][:-9]+'x'+\
-                           default_config['data']['example_resolution'][:4]+'x'+\
-                           datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+                           default_config['data']['example_resolution'][:4]
 
             self.model_directory = os.path.join(base_path, 'saved_models', new_dir_name)
 
@@ -91,7 +91,7 @@ class ModelConfiguration(object):
         if 'example_resolution' in model_configuration['data']:self.data_example_resolution = model_configuration['data']['example_resolution']
         else: self.data_example_resolution = 'morpheme'
 
-        self.data_vocabulary_file = os.path.join(base_path, 'data', 'vocabulary_'+model_configuration['data']['example_resolution']+'.tsv')
+        self.data_vocabulary_file = os.path.join(base_path, 'data', 'vocabulary_'+self.data_example_resolution+'.tsv')
 
         self.embedding_size = model_configuration['network']['embedding_size']
         self.batch_size = model_configuration['train']['batch_size']
@@ -135,14 +135,15 @@ class ModelConfiguration(object):
         self.train_decay_steps = model_configuration['train']['decay_steps']
         self.train_decay_rate = model_configuration['train']['decay_rate']
 
-        self.train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'], model_configuration['data']['example_resolution'])
-        self.train_rebuild_vocabulary_file = model_configuration['data']['rebuild_vocabulary_file']
+        self.train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'], self.data_example_resolution)
         self.train_epochs = model_configuration['train']['epochs']
         self.train_files_corpus = os.path.join(base_path, model_configuration['data']['train_dataset'])
         self.train_early_stop_after_not_decreasing_loss_num = model_configuration['train']['early_stop_after_not_decreasing_loss_num']
         self.train_save_modulo = model_configuration['train']['save_modulo']
         self.train_shuffle_sentences = model_configuration['train']['shuffle_sentences']
         self.test_sentences_rate = model_configuration['test']['sentences_rate']
+
+        self.train_rebuild_vocabulary_file = False # Analyses preprocessor will know if it has to.
 
         self.inference_batch_size = model_configuration['inference']['batch_size']
         self.inference_maximum_iterations = model_configuration['inference']['maximum_iterations']

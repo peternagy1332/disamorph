@@ -81,6 +81,7 @@ class Seq2SeqTrainer(object):
             tf.summary.scalar('loss', train_loss)
             tf.summary.scalar('learning_rate', learning_rate)
             tf.summary.scalar('global_step', global_step)
+            tf.summary.scalar('train_batch_accuracy', batch_accuracy)
             projector_config = projector.ProjectorConfig()
             embedding = projector_config.embeddings.add()
             embedding.tensor_name = self.__model.embedding_matrix.name
