@@ -10,7 +10,7 @@ from utils import Utils
 
 def main():
     parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-cfg', '--default-config', default=None)
+    parser.add_argument('-dcfg', '--default-config', default=None)
     parser.add_argument('-m', '--model-directory', default=None)
 
     model_configuration = ModelConfiguration(parser)

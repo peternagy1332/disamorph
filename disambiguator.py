@@ -10,8 +10,6 @@ import itertools
 from operator import itemgetter
 import os
 
-from tensorflow.python.training.saver import latest_checkpoint
-
 from data_processing.analyses_processor import AnalysesProcessor
 from data_processing.data_processor import DataProcessor
 from model.model_inference import BuildInferenceModel
@@ -129,6 +127,7 @@ class Disambiguator(object):
                     # Combinations and probabilities in window
                     #yield windows_combinations_in_sentence, list(map(lambda rnn_output: np.sum(rnn_output.max(axis=1)), final_outputs[0].rnn_output)) # log
                     #yield windows_combinations_in_sentence, list(map(lambda rnn_output: np.product(rnn_output.max(axis=1)), final_outputs[0].rnn_output)) # probability
+                    print('yield')
                     yield windows_combinations_in_sentence, probabilities
 
                 else:
@@ -167,6 +166,7 @@ class Disambiguator(object):
                     # print('NAGY OSSZESITO', sum(len(w) for w in windows_combinations_in_sentence), len(probabilities))
 
                     # Combinations and probabilities in window
+                    print('yield')
                     yield windows_combinations_in_sentence, probabilities
 
     def corpus_to_tokenized_sentences(self, corpus):

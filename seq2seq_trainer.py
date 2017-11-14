@@ -100,7 +100,6 @@ class Seq2SeqTrainer(object):
 
             stopping_step = 0
             lowest_loss = None
-            should_stop = False
             try:
                 for epoch_id in range(1, self.__config.train_epochs+1):
                     source_input_examples, target_input_examples, target_output_examples = data_processor.get_train_examples_matrices(train_dataframes)
@@ -166,16 +165,15 @@ class Seq2SeqTrainer(object):
                         stopping_step+=1
 
                     if self.__config.train_early_stop_after_not_decreasing_loss_num is not None and stopping_step >= self.__config.train_early_stop_after_not_decreasing_loss_num:
-                        should_stop = True
                         print('\tEarly stopping is triggered!')
+                        break
 
-                    if (epoch_id > 0 and epoch_id % self.__config.train_save_modulo == 0) or should_stop:
+                    if (epoch_id > 0 and epoch_id % self.__config.train_save_modulo == 0):
                         print('\tSaving model... ', end='')
                         save_path = saver.save(self.__train_session, os.path.join(self.__config.model_directory, self.__config.model_name))
                         projector.visualize_embeddings(summary_writer, projector_config)
                         print('\tSAVED to: ', save_path)
-                        if should_stop:
-                            break
+
             except KeyboardInterrupt:
                 print('\n\nTraining interrupted by user!')
 

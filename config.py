@@ -12,7 +12,7 @@ import yaml
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # GPU ID
-#os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 from utils import Utils
 
@@ -41,7 +41,7 @@ class ModelConfiguration(object):
 
         settings = {
             'default_args': {
-                'default_config': os.path.join(base_path, 'configs','default_config.yaml')
+                'default_config': os.path.join(base_path, 'default_configs','character.yaml')
             },
             'model_name': 'saved_model.ckpt',
             'config_name': 'model_configuration.yaml'
@@ -58,11 +58,11 @@ class ModelConfiguration(object):
 
         # New model
         if args.model_directory is None:
-            new_dir_name = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')+'x'+\
+            new_dir_name = datetime.datetime.fromtimestamp(time.time()).strftime('%m%d-%H%M%S')+'.'+\
                            default_config['network']['hidden_layer_cell_type']+'x'+\
                            str(default_config['network']['hidden_layer_count'])+'x'+\
-                           str(default_config['network']['hidden_layer_cells'])+'x'+\
-                           default_config['train']['loss_optimizer'][:-9]+'x'+\
+                           str(default_config['network']['hidden_layer_cells'])+'.'+\
+                           default_config['train']['loss_optimizer'][:-9]+'.'+\
                            default_config['data']['example_resolution'][:4]
 
             self.model_directory = os.path.join(base_path, 'saved_models', new_dir_name)
@@ -105,7 +105,7 @@ class ModelConfiguration(object):
         self.marker_go = 5
         self.vocabulary_start_index = 6
 
-        self.embedding_labels_metadata = os.path.join(base_path,'data','embedding_labels.tsv')
+        self.embedding_labels_metadata = os.path.join(base_path,'data','metadata_'+self.data_example_resolution+'.tsv')
 
         if 'dropout_keep_probability' in model_configuration['network'].keys(): self.network_dropout_keep_probability = model_configuration['network']['dropout_keep_probability']
         else: self.network_dropout_keep_probability = None
