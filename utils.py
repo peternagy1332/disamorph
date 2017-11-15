@@ -45,25 +45,38 @@ class Utils(object):
 
     def start_stopwatch(self):
         self.start_time = time.time()
+        self.last_checkpoint_time = None
 
-    def stop_stopwatch_and_print_running_time(self):
+    def __timediff_to_string(self, diff):
+
+        diffD = (((diff / 365) / 24) / 60)
+        days = int(diffD)
+
+        diffH = (diffD - days) * 365
+        hours = int(diffH)
+
+        diffM = (diffH - hours) * 24
+        minutes = int(diffM)
+
+        diffS = (diffM - minutes) * 60
+        seconds = int(diffS)
+
+        return "%d days and %s:%s:%s" % (days, str(hours).zfill(2), str(minutes).zfill(2), str(seconds).zfill(2))
+
+    def print_elapsed_time(self):
         stop_time = time.time()
 
         diff = stop_time - self.start_time
 
-        diffD = (((diff / 365) / 24) / 60)
-        Days = int(diffD)
+        print("\tElapsed time total:", self.__timediff_to_string(diff), end='; ')
 
-        diffH = (diffD - Days) * 365
-        Hours = int(diffH)
+        if self.last_checkpoint_time is not None:
+            diff = stop_time - self.last_checkpoint_time
+            print("from last checkpoint:", self.__timediff_to_string(diff))
+        else:
+            print()
 
-        diffM = (diffH - Hours) * 24
-        Minutes = int(diffM)
-
-        diffS = (diffM - Minutes) * 60
-        Seconds = int(diffS)
-
-        print("Running took ", Days, "days;", str(Hours).zfill(2)+":"+str(Minutes).zfill(2)+":"+str(Seconds).zfill(2))
+        self.last_checkpoint_time = stop_time
 
     @staticmethod
     def fullvars(obj):

@@ -19,8 +19,8 @@ def main():
     toy = False
 
     if toy:
-        model_configuration.rows_to_read_num = 100
-        model_configuration.batch_size = 55
+        model_configuration.data_rows_to_read_num = 100
+        model_configuration.train_batch_size = 55
         model_configuration.train_shuffle_sentences = True
         model_configuration.train_save_modulo = 50
 

@@ -34,7 +34,7 @@ class BuildInferenceModel(object):
         with tf.variable_scope('placeholders'):
             infer_inputs = tf.placeholder(tf.int32,
                                           [self.__config.inference_batch_size,
-                                           self.__config.max_source_sequence_length],
+                                           self.__config.network_max_source_sequence_length],
                                           'infer_inputs')
 
             return Placeholders(
@@ -48,13 +48,13 @@ class BuildInferenceModel(object):
             #decoder_inputs_sequence_length = tf.count_nonzero(placeholders.decoder_inputs, axis=1, dtype=tf.int32)
 
             mechanism = tf.contrib.seq2seq.LuongAttention(
-                self.__config.hidden_layer_cells, encoder_outputs,
-                memory_sequence_length=[self.__config.max_target_sequence_length]*self.__config.inference_batch_size,
+                self.__config.network_hidden_layer_cells, encoder_outputs,
+                memory_sequence_length=[self.__config.network_max_target_sequence_length]*self.__config.inference_batch_size,
                 scale=False
             )
 
             decoder_rnn = tf.contrib.seq2seq.AttentionWrapper(
-                decoder_rnn, mechanism, attention_layer_size=self.__config.hidden_layer_cells
+                decoder_rnn, mechanism, attention_layer_size=self.__config.network_hidden_layer_cells
             )
 
             helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(

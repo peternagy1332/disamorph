@@ -20,7 +20,7 @@ class AnalysesProcessor(object):
         features = []
         if os.path.isfile(self.__config.data_vocabulary_file):
             with open(self.__config.data_vocabulary_file, 'r', encoding='utf-8') as f: features.extend(f.read().splitlines())
-            self.vocabulary = dict(zip(features, range(self.__config.vocabulary_start_index, len(features) + self.__config.vocabulary_start_index+1)))
+            self.vocabulary = dict(zip(features, range(self.__config.marker_vocabulary_start_index, len(features) + self.__config.marker_vocabulary_start_index+1)))
         else:
             print('\tVocabulary file not found ('+self.__config.data_vocabulary_file+'), rebuild is going to be performed.')
             self.__config.train_rebuild_vocabulary_file = True
@@ -53,7 +53,7 @@ class AnalysesProcessor(object):
             vectorized_analyses_for_word = self.__hfst_cache_vectorized[word]
         else:
             hfst_pipe = subprocess.Popen(
-                'hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ' + self.__config.transducer_path + ' | cut -f2 | grep .',
+                'hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ' + self.__config.inference_transducer_path + ' | cut -f2 | grep .',
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -115,7 +115,7 @@ class AnalysesProcessor(object):
             analyses_for_word = self.__hfst_cache[word]
         else:
             hfst_pipe = subprocess.Popen(
-                'hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ' + self.__config.transducer_path + ' | cut -f2 | grep .',
+                'hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ' + self.__config.inference_transducer_path + ' | cut -f2 | grep .',
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

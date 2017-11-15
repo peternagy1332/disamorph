@@ -1,63 +1,64 @@
 import datetime
 import os
-
 import numpy as np
 import operator
-
-# Silence TensorFlow
 import time
-
 import yaml
+from random import seed
+from utils import Utils
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-# GPU ID
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
-from utils import Utils
 
 np.set_printoptions(linewidth=200, precision=2)
 
 class ModelConfiguration(object):
-    __slots__ = ('train_files_corpus', 'train_save_modulo', 'train_matrices',
-                 'train_early_stop_after_not_decreasing_loss_num', 'train_shuffle_sentences', 'train_epochs', 'train_loss_optimizer', 'train_loss_optimizer_kwargs',
-                 'train_decay_rate', 'train_decay_steps', 'train_continue_previous', 'train_decaying_learning_rate', 'train_decay_type', 'train_shuffle_examples_in_batches',
-                 'embedding_labels_metadata', 'network_dropout_keep_probability', 'network_activation',
-                 'model_directory', 'model_name',
-
-                 'hidden_layer_count', 'hidden_layer_cells', 'hidden_layer_cell_type', 'train_rebuild_vocabulary_file',
-                 'test_sentences_rate', 'max_source_sequence_length', 'max_target_sequence_length', 'embedding_size', 'batch_size',
-                 'window_length', 'vocabulary_start_index', 'rows_to_read_num', 'max_gradient_norm', 'train_starter_learning_rate',
-
-                 'marker_padding', 'marker_analysis_divider', 'marker_start_of_sentence', 'marker_end_of_sentence', 'marker_unknown', 'marker_go',
+    __slots__ = ('train_shuffle_examples_in_batches', 'train_schedule',
+                 'train_shuffle_sentences', 'train_epochs', 'train_loss_optimizer', 'train_loss_optimizer_kwargs',
+                 'train_continue_previous',
+                 'train_rebuild_vocabulary_file', 'train_batch_size', 'train_starter_learning_rate',
 
                  'data_random_seed', 'data_example_resolution', 'data_vocabulary_file',
-                 'max_source_sequence_length', 'max_target_sequence_length', 'inference_batch_size', 'inference_maximum_iterations', 'analyses_path',
-                 'transducer_path')
+                 'data_train_ratio', 'data_validation_ratio', 'data_sentences_to_read_num',
+                 'data_train_matrices', 'data_train_dataset',
+
+                 'network_max_source_sequence_length', 'network_max_target_sequence_length',
+                 'network_dropout_keep_probability', 'network_activation',
+                 'network_hidden_layer_count', 'network_hidden_layer_cells', 'network_hidden_layer_cell_type',
+                 'network_embedding_size', 'network_window_length', 'network_max_gradient_norm',
+
+                 'inference_maximum_iterations',
+                 'inference_batch_size',
+                 'inference_transducer_path',
+
+                 'embedding_labels_metadata',
+                 'model_directory', 'model_name',
+
+                 'marker_padding', 'marker_analysis_divider', 'marker_start_of_sentence',
+                 'marker_end_of_sentence', 'marker_unknown', 'marker_go', 'marker_vocabulary_start_index',
+
+                 'default_config_path')
 
     def __init__(self, parser):
-
-        base_path = os.path.dirname(__file__)
-
-        settings = {
-            'default_args': {
-                'default_config': os.path.join(base_path, 'default_configs','character.yaml')
-            },
-            'model_name': 'saved_model.ckpt',
-            'config_name': 'model_configuration.yaml'
-        }
-
         args = parser.parse_args()
 
-        if args.default_config is None:
-            args.default_config = settings['default_args']['default_config']
+        # For resolving absolute paths
+        base_path = os.path.dirname(__file__)
 
-        with open(args.default_config, 'r', encoding='utf8') as default_config_file:
+        # Locating default config path
+        if args.default_config is None: self.default_config_path = os.path.join(base_path, 'default_configs','character.yaml')
+        else: self.default_config_path = args.default_config
+
+        # Overridable optional variables
+        self.train_loss_optimizer_kwargs = {}
+        self.data_sentences_to_read_num = None
+
+        # Loading default config file
+        with open(self.default_config_path, 'r', encoding='utf8') as default_config_file:
             default_config = yaml.safe_load(default_config_file)
 
-
-        # New model
+        # If it is a new model
         if args.model_directory is None:
+            # Building model name
             new_dir_name = datetime.datetime.fromtimestamp(time.time()).strftime('%m%d-%H%M%S')+'.'+\
                            default_config['network']['hidden_layer_cell_type']+'x'+\
                            str(default_config['network']['hidden_layer_count'])+'x'+\
@@ -69,7 +70,8 @@ class ModelConfiguration(object):
 
             os.makedirs(self.model_directory)
 
-            with open(os.path.join(self.model_directory, settings['config_name']), 'w', encoding='utf8') as model_configuration_file:
+            # Copy default config
+            with open(os.path.join(self.model_directory, 'model_configuration.yaml'), 'w', encoding='utf8') as model_configuration_file:
                 yaml.dump(default_config, model_configuration_file, default_flow_style=False)
 
             model_configuration = default_config
@@ -79,79 +81,43 @@ class ModelConfiguration(object):
             # Already existing model
             self.model_directory = args.model_directory
             if os.path.exists(self.model_directory) and os.path.isdir(self.model_directory):
-                with open(os.path.join(args.model_directory, settings['config_name']), 'r', encoding='utf8') as model_configuration_file:
+
+                # Opening existing model config and merge onto the default config
+                with open(os.path.join(self.model_directory, 'model_configuration.yaml'), 'r', encoding='utf8') as model_configuration_file:
                     model_configuration = yaml.safe_load(model_configuration_file)
                     model_configuration = {**default_config, **model_configuration}
                 self.train_continue_previous = True
+
             else:
                 raise ValueError('Model does not exist:', args.model_directory)
 
-        self.model_name = settings['model_name']
+        # Setting parameters
+        for param_group_key, param_group in model_configuration.items():
+            for param, value in param_group.items():
+                setattr(self, param_group_key+'_'+param, value)
 
-        if 'example_resolution' in model_configuration['data']:self.data_example_resolution = model_configuration['data']['example_resolution']
-        else: self.data_example_resolution = 'morpheme'
-
-        self.data_vocabulary_file = os.path.join(base_path, 'data', 'vocabulary_'+self.data_example_resolution+'.tsv')
-
-        self.embedding_size = model_configuration['network']['embedding_size']
-        self.batch_size = model_configuration['train']['batch_size']
-        self.window_length = model_configuration['network']['window_length']
-
+        # Setting non-configurable parameters
+        self.model_name = 'saved_model.ckpt'
         self.marker_padding = 0
         self.marker_analysis_divider = 1
         self.marker_start_of_sentence = 2
         self.marker_end_of_sentence = 3
         self.marker_unknown = 4
         self.marker_go = 5
-        self.vocabulary_start_index = 6
+        self.marker_vocabulary_start_index = 6
 
+        # Building file paths
         self.embedding_labels_metadata = os.path.join(base_path,'data','metadata_'+self.data_example_resolution+'.tsv')
+        self.data_train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'], self.data_example_resolution)
+        self.data_train_dataset = os.path.join(base_path, model_configuration['data']['train_dataset'])
+        self.data_vocabulary_file = os.path.join(base_path, 'data', 'vocabulary_' + self.data_example_resolution + '.tsv')
 
-        if 'dropout_keep_probability' in model_configuration['network'].keys(): self.network_dropout_keep_probability = model_configuration['network']['dropout_keep_probability']
-        else: self.network_dropout_keep_probability = None
+        # Analyses preprocessor will know if it has to.
+        self.train_rebuild_vocabulary_file = False
 
-        if 'activation' in model_configuration['network'].keys(): self.network_activation = model_configuration['network']['activation']
-        else: self.network_activation = None
-
-        if 'random_seed' in model_configuration['data'].keys(): self.data_random_seed = model_configuration['data']['random_seed']
-        else: self.data_random_seed = None
-
-        self.rows_to_read_num = model_configuration['data']['rows_to_read_num']
-        self.max_gradient_norm = model_configuration['network']['max_gradient_norm']
-        self.hidden_layer_count = model_configuration['network']['hidden_layer_count']
-        self.hidden_layer_cells = model_configuration['network']['hidden_layer_cells']
-        self.hidden_layer_cell_type = model_configuration['network']['hidden_layer_cell_type']
-        self.train_loss_optimizer = model_configuration['train']['loss_optimizer']
-
-        if 'loss_optimizer_kwargs' in model_configuration['train']:self.train_loss_optimizer_kwargs = model_configuration['train']['loss_optimizer_kwargs']
-        else: self.train_loss_optimizer_kwargs = {}
-
-        if 'shuffle_examples_in_batches' in model_configuration['train']:self.train_shuffle_examples_in_batches = model_configuration['train']['shuffle_examples_in_batches']
-        else: self.train_shuffle_examples_in_batches = False
-
-        self.train_decay_type = model_configuration['train']['decay_type']
-        self.train_decaying_learning_rate = model_configuration['train']['decaying_learning_rate']
-        self.train_starter_learning_rate = model_configuration['train']['starter_learning_rate']
-        self.train_decay_steps = model_configuration['train']['decay_steps']
-        self.train_decay_rate = model_configuration['train']['decay_rate']
-
-        self.train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'], self.data_example_resolution)
-        self.train_epochs = model_configuration['train']['epochs']
-        self.train_files_corpus = os.path.join(base_path, model_configuration['data']['train_dataset'])
-        self.train_early_stop_after_not_decreasing_loss_num = model_configuration['train']['early_stop_after_not_decreasing_loss_num']
-        self.train_save_modulo = model_configuration['train']['save_modulo']
-        self.train_shuffle_sentences = model_configuration['train']['shuffle_sentences']
-        self.test_sentences_rate = model_configuration['test']['sentences_rate']
-
-        self.train_rebuild_vocabulary_file = False # Analyses preprocessor will know if it has to.
-
-        self.inference_batch_size = model_configuration['inference']['batch_size']
-        self.inference_maximum_iterations = model_configuration['inference']['maximum_iterations']
-
-        self.max_source_sequence_length = model_configuration['network']['max_source_sequence_length']
-        self.max_target_sequence_length = model_configuration['network']['max_target_sequence_length']
-
-        self.transducer_path = model_configuration['inference']['transducer_path']
+        # Begin configuration
+        if self.data_random_seed is not None:
+            seed(self.data_random_seed)
 
     def printConfig(self):
         print('%90s' % ('Global configurations'))
@@ -160,3 +126,4 @@ class ModelConfiguration(object):
         for k, v in sorted(Utils.fullvars(self).items(), key=operator.itemgetter(0)):
             print("%-50s\t%s" % (k, v))
         print('-' * 100)
+

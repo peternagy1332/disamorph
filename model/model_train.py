@@ -33,7 +33,7 @@ class BuildTrainModel(object):
     def create_embedding(self):
         with tf.variable_scope('embedding'):
             embedding_matrix = tf.get_variable('embedding_matrix',
-                                               [len(self.__inverse_vocabulary), self.__config.embedding_size],
+                                               [len(self.__inverse_vocabulary), self.__config.network_embedding_size],
                                                dtype=tf.float32)
             return embedding_matrix
 
@@ -41,7 +41,7 @@ class BuildTrainModel(object):
     def create_rnn(self, half=False):
         cells = []
 
-        layers = self.__config.hidden_layer_count if half==False else self.__config.hidden_layer_count // 2
+        layers = self.__config.network_hidden_layer_count if half==False else self.__config.network_hidden_layer_count // 2
 
         for i in range(layers):
             if self.__config.network_activation is not None:
@@ -49,10 +49,10 @@ class BuildTrainModel(object):
             else:
                 activation = None
 
-            if self.__config.hidden_layer_cell_type == 'LSTM':
-                cell = tf.nn.rnn_cell.BasicLSTMCell(self.__config.hidden_layer_cells, activation=activation)
-            elif self.__config.hidden_layer_cell_type == 'GRU':
-                cell = tf.nn.rnn_cell.GRUCell(self.__config.hidden_layer_cells, activation=activation)
+            if self.__config.network_hidden_layer_cell_type == 'LSTM':
+                cell = tf.nn.rnn_cell.BasicLSTMCell(self.__config.network_hidden_layer_cells, activation=activation)
+            elif self.__config.network_hidden_layer_cell_type == 'GRU':
+                cell = tf.nn.rnn_cell.GRUCell(self.__config.network_hidden_layer_cells, activation=activation)
 
             if self.__config.network_dropout_keep_probability is not None:
                 cell = tf.contrib.rnn.DropoutWrapper(cell, input_keep_prob=self.__config.network_dropout_keep_probability)
@@ -68,17 +68,17 @@ class BuildTrainModel(object):
         with tf.variable_scope('placeholders'):
             encoder_inputs = tf.placeholder(tf.int32,
                                             [None,
-                                             self.__config.max_source_sequence_length],
+                                             self.__config.network_max_source_sequence_length],
                                             'encoder_inputs')
 
             decoder_inputs = tf.placeholder(tf.int32,
                                             [None,
-                                             self.__config.max_target_sequence_length],
+                                             self.__config.network_max_target_sequence_length],
                                             'decoder_inputs')
 
             decoder_outputs = tf.placeholder(tf.int32,
                                              [None,
-                                              self.__config.max_target_sequence_length],
+                                              self.__config.network_max_target_sequence_length],
                                              'decoder_outputs')
 
             return Placeholders(
@@ -103,7 +103,7 @@ class BuildTrainModel(object):
 
             encoder_outputs = tf.concat(o, -1)
             encoder_state = []
-            for i in range(self.__config.hidden_layer_count // 2):
+            for i in range(self.__config.network_hidden_layer_count // 2):
                 encoder_state.append(s[0][i])
                 encoder_state.append(s[1][i])
             encoder_state = tuple(encoder_state)
@@ -124,22 +124,22 @@ class BuildTrainModel(object):
             decoder_inputs_sequence_length = tf.count_nonzero(placeholders.decoder_inputs, axis=1, dtype=tf.int32)
 
             mechanism = tf.contrib.seq2seq.LuongAttention(
-                self.__config.hidden_layer_cells, encoder_outputs,
+                self.__config.network_hidden_layer_cells, encoder_outputs,
                 memory_sequence_length=decoder_inputs_sequence_length,
                 scale=False
             )
 
             decoder_rnn = tf.contrib.seq2seq.AttentionWrapper(
-                decoder_rnn, mechanism, attention_layer_size=self.__config.hidden_layer_cells
+                decoder_rnn, mechanism, attention_layer_size=self.__config.network_hidden_layer_cells
             )
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, placeholders.decoder_inputs)
 
             helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length, time_major=False)
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False) # , activation=tf.nn.softmax
+            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
 
-            decoder_initial_state = decoder_rnn.zero_state(self.__config.batch_size, tf.float32).clone(cell_state=encoder_state)
+            decoder_initial_state = decoder_rnn.zero_state(self.__config.train_batch_size, tf.float32).clone(cell_state=encoder_state)
 
             decoder = tf.contrib.seq2seq.BasicDecoder(
                 cell=decoder_rnn,
@@ -156,8 +156,8 @@ class BuildTrainModel(object):
             logits = final_outputs.rnn_output
             output_sequences = final_outputs.sample_id
 
-            # label_first_dim(self.batch_size * self.max_target_sequence_length) = logit_first_dim(self.batch_size * self.max_target_Sequence_length)
-            #vertical_padding = tf.zeros([self.__config.max_target_sequence_length-tf.reduce_max(decoder_inputs_sequence_length), len(self.__inverse_vocabulary)], dtype=tf.float32)
+            # label_first_dim(self.train_train_batch_size * self.network_max_target_sequence_length) = logit_first_dim(self.train_train_batch_size * self.max_target_Sequence_length)
+            #vertical_padding = tf.zeros([self.__config.network_max_target_sequence_length-tf.reduce_max(decoder_inputs_sequence_length), len(self.__inverse_vocabulary)], dtype=tf.float32)
             #logits = tf.map_fn(lambda logit: tf.concat([logit, vertical_padding], axis=0), logits)
 
             return logits, output_sequences

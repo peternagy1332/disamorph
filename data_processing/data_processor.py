@@ -1,6 +1,8 @@
 import csv
 import glob
 import os
+from collections import namedtuple
+
 import pandas as pd
 import numpy as np
 import itertools
@@ -23,15 +25,15 @@ class DataProcessor(object):
 
     def get_sentence_dicts(self, use_saved_matrices=True):
         print('def get_sentence_dicts(self, use_saved_matrices='+str(use_saved_matrices)+'):')
-        if os.path.isdir(self.__config.train_matrices) and os.listdir(os.path.join(self.__config.train_matrices, 'source_input'))!=[] and use_saved_matrices:
-            print('\tUsing previously saved train matrices. Returning no dataframes.')
+        if os.path.isdir(self.__config.data_train_matrices) and os.listdir(os.path.join(self.__config.data_train_matrices, 'source_input'))!=[] and use_saved_matrices:
+            print('\tUsing previously saved train matrices. Returning no sentences.')
             return []
 
-        sentence_dataframes = []
+        sentence_dicts = []
 
         read_rows = 0
         should_stop = False
-        for file in glob.glob(self.__config.train_files_corpus):
+        for file in glob.glob(self.__config.data_train_dataset):
             if should_stop:
                 break
 
@@ -39,7 +41,7 @@ class DataProcessor(object):
                 csvreader = csv.reader(csvfile, delimiter='\t', quoting=csv.QUOTE_NONE)
 
                 sentence_dict = {'word': [], 'correct_analysis_vector': [], 'correct_analysis': [] }
-                for i in range(self.__config.window_length - 1):
+                for i in range(self.__config.network_window_length - 1):
                     sentence_dict['word'].append(self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence])
                     sentence_dict['correct_analysis_vector'].append([self.__config.marker_start_of_sentence])
                     sentence_dict['correct_analysis'].append(self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence])
@@ -48,9 +50,9 @@ class DataProcessor(object):
                 for row in csvreader:
                     # End of sentence
                     if len(row) == 0:
-                        sentence_dataframes.append(sentence_dict)
+                        sentence_dicts.append(sentence_dict)
                         sentence_dict = {'word': [], 'correct_analysis_vector': [], 'correct_analysis': [] }
-                        for i in range(self.__config.window_length - 1):
+                        for i in range(self.__config.network_window_length - 1):
                             sentence_dict['word'].append(self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence])
                             sentence_dict['correct_analysis_vector'].append([self.__config.marker_start_of_sentence])
                             sentence_dict['correct_analysis'].append(self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence])
@@ -81,15 +83,39 @@ class DataProcessor(object):
 
 
                     read_rows+=1
-                    if self.__config.rows_to_read_num is not None and read_rows>=self.__config.rows_to_read_num:
+
+                    if self.__config.data_sentences_to_read_num is not None and len(sentence_dicts)>=self.__config.data_sentences_to_read_num:
                         should_stop = True
                         break
 
         self.__analyses_processor.write_vocabulary_file()
 
+        print('\t#{total sentences}:', len(sentence_dicts))
         print('\t#{read rows}:', read_rows)
-        print('\t#{total sentences}:',len(sentence_dataframes))
-        return sentence_dataframes
+
+        return sentence_dicts
+
+    def get_split_sentence_dicts(self):
+        sentence_dicts = self.get_sentence_dicts()
+        # Splitting sentence dict list to train, validation, test
+        train_sentence_dicts = sentence_dicts[:int(len(sentence_dicts) * self.__config.data_train_ratio)]
+
+        validation_sentence_dicts = sentence_dicts[
+                                    int(len(sentence_dicts) * self.__config.data_train_ratio):
+                                    int(len(sentence_dicts) * (self.__config.data_train_ratio + self.__config.data_validation_ratio))
+                                    ]
+
+        test_sentence_dicts = sentence_dicts[int(len(sentence_dicts) * (self.__config.data_train_ratio + self.__config.data_validation_ratio)):]
+
+
+        print('\t#{train sentences}:', len(train_sentence_dicts))
+        print('\t#{validation sentences}:', len(validation_sentence_dicts))
+        print('\t#{test sentences}:', len(test_sentence_dicts))
+
+        if len(train_sentence_dicts) + len(validation_sentence_dicts) + len(test_sentence_dicts) != len(sentence_dicts):
+            raise ValueError('SUM len of train, validation, test sentences != len of sentences')
+
+        return train_sentence_dicts, validation_sentence_dicts, test_sentence_dicts
 
     def format_window_word_analyses(self, combinations_in_window, EOS_needed=True):
         flattened_markered_combinations = []
@@ -109,76 +135,89 @@ class DataProcessor(object):
 
         return flattened_markered_combinations
 
-    def pad_batch(self, batch_list, max_sequence_length, min_batch_size = None):
+    def pad_batch(self, batch_list, max_sequence_length, min_train_batch_size = None):
         horizontal_pad = list(map(lambda sequence: sequence + [self.__config.marker_padding] * (max_sequence_length - len(sequence)),batch_list))
 
         # Vertical padding
-        if min_batch_size is not None:
+        if min_train_batch_size is not None:
             padding_row = [self.__config.marker_padding] * max_sequence_length
 
-            for i in range(min_batch_size - len(horizontal_pad)):
+            for i in range(min_train_batch_size - len(horizontal_pad)):
                 horizontal_pad.append(padding_row)
 
         return horizontal_pad
 
-    def __train_dataframes_to_sentence_matrices(self, train_dataframes):
-        print('def __train_dataframes_to_sentence_matrices(self, train_dataframes):')
+    def __sentence_dicts_to_sentence_matrices(self, sentence_dicts):
+        print('def __sentence_dicts_to_sentence_matrices(self, sentence_dicts):')
 
-        if os.path.isdir(self.__config.train_matrices) and os.listdir(os.path.join(self.__config.train_matrices, 'source_input'))!=[]:
-            print('\tLoading saved sentence matrices from:',self.__config.train_matrices)
-            for file in sorted(glob.glob(os.path.join(self.__config.train_matrices, 'source_input', 'sentence_source_input_examples_*.npy'))):
+        if os.path.isdir(self.__config.data_train_matrices) and os.listdir(os.path.join(self.__config.data_train_matrices, 'source_input'))!=[] and len(sentence_dicts) == 0:
+            print('\tLoading saved sentence matrices from:',self.__config.data_train_matrices)
+            for file in sorted(glob.glob(os.path.join(self.__config.data_train_matrices, 'source_input', 'sentence_source_input_examples_*.npy'))):
                 sentence_source_input_examples_matrix = np.load(file)
-                self.__sentence_source_input_examples_matrices.append(sentence_source_input_examples_matrix)
-                if sentence_source_input_examples_matrix.shape[1] != self.__config.max_source_sequence_length:
+
+                if sentence_source_input_examples_matrix.shape[1] != self.__config.network_max_source_sequence_length:
                     print(sentence_source_input_examples_matrix)
-            print('\tLOADED: self.__sentence_source_input_examples_matrices')
 
-            for file in sorted(glob.glob(os.path.join(self.__config.train_matrices, 'target_input', 'sentence_target_input_examples_*.npy'))):
+                self.__sentence_source_input_examples_matrices.append(sentence_source_input_examples_matrix)
+
+                if self.__config.data_sentences_to_read_num is not None and len(self.__sentence_source_input_examples_matrices)>=self.__config.data_sentences_to_read_num:
+                    break
+            print('\t\tLOADED: self.__sentence_source_input_examples_matrices')
+
+            for file in sorted(glob.glob(os.path.join(self.__config.data_train_matrices, 'target_input', 'sentence_target_input_examples_*.npy'))):
                 sentence_target_input_examples_matrix = np.load(file)
-                self.__sentence_target_input_examples_matrices.append(sentence_target_input_examples_matrix)
-                if sentence_target_input_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
-                    print(sentence_target_input_examples_matrix)
-            print('\tLOADED: self.__sentence_target_input_examples_matrices')
 
-            for file in sorted(glob.glob(os.path.join(self.__config.train_matrices, 'target_output', 'sentence_target_output_examples_*.npy'))):
+                if sentence_target_input_examples_matrix.shape[1] != self.__config.network_max_target_sequence_length:
+                    print(sentence_target_input_examples_matrix)
+
+                self.__sentence_target_input_examples_matrices.append(sentence_target_input_examples_matrix)
+
+                if self.__config.data_sentences_to_read_num is not None and len(self.__sentence_target_input_examples_matrices)>=self.__config.data_sentences_to_read_num:
+                    break
+            print('\t\tLOADED: self.__sentence_target_input_examples_matrices')
+
+            for file in sorted(glob.glob(os.path.join(self.__config.data_train_matrices, 'target_output', 'sentence_target_output_examples_*.npy'))):
                 sentence_target_output_examples_matrix = np.load(file)
-                self.__sentence_target_output_examples_matrices.append(sentence_target_output_examples_matrix)
-                if sentence_target_output_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+
+                if sentence_target_output_examples_matrix.shape[1] != self.__config.network_max_target_sequence_length:
                     print(sentence_target_output_examples_matrix)
-            print('\tLOADED: self.__sentence_target_output_examples_matrices')
+
+                self.__sentence_target_output_examples_matrices.append(sentence_target_output_examples_matrix)
+
+                if self.__config.data_sentences_to_read_num is not None and len(self.__sentence_target_output_examples_matrices)>=self.__config.data_sentences_to_read_num:
+                    break
+            print('\t\tLOADED: self.__sentence_target_output_examples_matrices')
 
         else:
-            print('\tGenerating and saving sentence matrices to empty directory: ',self.__config.train_matrices)
+            print('\tGenerating and saving sentence matrices to empty directory: ',self.__config.data_train_matrices)
             sentence_id = 0
-            for sentence_dataframe in train_dataframes:
-                sentence_source_input_examples,\
-                sentence_target_input_examples,\
-                sentence_target_output_examples = self.__sentence_dataframe_to_examples(sentence_dataframe)
+            for sentence_dict in sentence_dicts:
+                sentence_source_input_examples, sentence_target_input_examples, sentence_target_output_examples = self.__sentence_dict_to_examples(sentence_dict)
 
                 sentence_source_input_examples_matrix = np.matrix(sentence_source_input_examples)
                 sentence_target_input_examples_matrix = np.matrix(sentence_target_input_examples)
                 sentence_target_output_examples_matrix = np.matrix(sentence_target_output_examples)
 
-                if sentence_source_input_examples_matrix.shape[1] != self.__config.max_source_sequence_length:
+                if sentence_source_input_examples_matrix.shape[1] != self.__config.network_max_source_sequence_length:
                     print('print(sentence_source_input_examples_matrix)')
                     print(sentence_source_input_examples_matrix.shape)
                     print(sentence_source_input_examples_matrix)
 
-                if sentence_target_input_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+                if sentence_target_input_examples_matrix.shape[1] != self.__config.network_max_target_sequence_length:
                     print('print(sentence_target_input_examples_matrix)')
                     print(sentence_target_input_examples_matrix.shape)
                     print(sentence_target_input_examples_matrix)
 
-                if sentence_target_output_examples_matrix.shape[1] != self.__config.max_target_sequence_length:
+                if sentence_target_output_examples_matrix.shape[1] != self.__config.network_max_target_sequence_length:
                     print('print(sentence_target_output_examples_matrix)')
                     print(sentence_target_output_examples_matrix.shape)
                     print(sentence_target_output_examples_matrix)
 
                 # TODO: Check if max_*_sequence_length is too low (matrix contains list)
 
-                np.save(os.path.join(self.__config.train_matrices, 'source_input', 'sentence_source_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_source_input_examples_matrix)
-                np.save(os.path.join(self.__config.train_matrices, 'target_input', 'sentence_target_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_input_examples_matrix)
-                np.save(os.path.join(self.__config.train_matrices, 'target_output', 'sentence_target_output_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_output_examples_matrix)
+                np.save(os.path.join(self.__config.data_train_matrices, 'source_input', 'sentence_source_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_source_input_examples_matrix)
+                np.save(os.path.join(self.__config.data_train_matrices, 'target_input', 'sentence_target_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_input_examples_matrix)
+                np.save(os.path.join(self.__config.data_train_matrices, 'target_output', 'sentence_target_output_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_output_examples_matrix)
 
                 sentence_id += 1
 
@@ -186,55 +225,87 @@ class DataProcessor(object):
                 self.__sentence_target_input_examples_matrices.append(sentence_target_input_examples_matrix)
                 self.__sentence_target_output_examples_matrices.append(sentence_target_output_examples_matrix)
 
-
-    def get_train_examples_matrices(self, train_dataframes):
-        print('def get_train_examples_matrices(self, train_dataframes):')
+    def get_example_matrices(self, sentence_dicts):
+        print('def get_example_matrices(self, sentence_dicts):')
 
         if self.__sentence_source_input_examples_matrices == []:
-            self.__train_dataframes_to_sentence_matrices(train_dataframes)
+            self.__sentence_dicts_to_sentence_matrices(sentence_dicts)
+
+
+        # Splitting sentence matrices list to train, validation, test
+        sentence_example_matrices_zipped = list(zip(
+            self.__sentence_source_input_examples_matrices,
+            self.__sentence_target_input_examples_matrices,
+            self.__sentence_target_output_examples_matrices
+        ))
+
+        train_sentence_example_matrices_zipped = sentence_example_matrices_zipped[:int(len(sentence_example_matrices_zipped)*self.__config.data_train_ratio)]
+        validation_sentence_example_matrices_zipped = sentence_example_matrices_zipped[
+            int(len(sentence_example_matrices_zipped) * self.__config.data_train_ratio):
+            int(len(sentence_example_matrices_zipped) * (self.__config.data_train_ratio + self.__config.data_validation_ratio))
+        ]
+        test_sentence_example_matrices_zipped = sentence_example_matrices_zipped[int(len(sentence_example_matrices_zipped) * (self.__config.data_train_ratio + self.__config.data_validation_ratio)):]
+
+        if len(train_sentence_example_matrices_zipped) + len(validation_sentence_example_matrices_zipped) + len(test_sentence_example_matrices_zipped) != len(sentence_example_matrices_zipped):
+            print('train_sentence_example_matrices_zipped', len(train_sentence_example_matrices_zipped))
+            print('validation_sentence_example_matrices_zipped', len(validation_sentence_example_matrices_zipped))
+            print('test_sentence_example_matrices_zipped',len(test_sentence_example_matrices_zipped))
+            print('sum: ',len(train_sentence_example_matrices_zipped) + len(validation_sentence_example_matrices_zipped) + len(test_sentence_example_matrices_zipped))
+            print('total: ', len(sentence_example_matrices_zipped))
+            raise ValueError('SUM len of train, validation, test sentence example matrices != len of sentence_example_matrices_zipped')
 
         if self.__config.train_shuffle_sentences:
-            print('\tShuffling sentences...')
-            sentence_example_matrices_zipped = list(zip(
-                self.__sentence_source_input_examples_matrices,
-                self.__sentence_target_input_examples_matrices,
-                self.__sentence_target_output_examples_matrices
-            ))
-
-            shuffle(sentence_example_matrices_zipped)
-
-            source_input_examples = np.concatenate(tuple(sentence_example_matrices[0] for sentence_example_matrices in sentence_example_matrices_zipped),axis=0)
-            target_input_examples = np.concatenate(tuple(sentence_example_matrices[1] for sentence_example_matrices in sentence_example_matrices_zipped),axis=0)
-            target_output_examples = np.concatenate(tuple(sentence_example_matrices[2] for sentence_example_matrices in sentence_example_matrices_zipped),axis=0)
-
-
+            print('\tShuffling train sentences...')
+            shuffle(train_sentence_example_matrices_zipped)
         else:
-            print('\tUsing sentences in original order...')
-            if self.__source_input_examples is None:
-                self.__source_input_examples = np.concatenate(tuple(self.__sentence_source_input_examples_matrices),axis=0)
-                self.__target_input_examples = np.concatenate(tuple(self.__sentence_target_input_examples_matrices),axis=0)
-                self.__target_output_examples = np.concatenate(tuple(self.__sentence_target_output_examples_matrices),axis=0)
+            print('\tUsing sentences in original order.')
 
-            source_input_examples = self.__source_input_examples
-            target_input_examples = self.__target_input_examples
-            target_output_examples = self.__target_output_examples
+        train_source_input_examples = np.concatenate(tuple(sentence_example_matrices[0] for sentence_example_matrices in train_sentence_example_matrices_zipped),axis=0)
+        train_target_input_examples = np.concatenate(tuple(sentence_example_matrices[1] for sentence_example_matrices in train_sentence_example_matrices_zipped),axis=0)
+        train_target_output_examples = np.concatenate(tuple(sentence_example_matrices[2] for sentence_example_matrices in train_sentence_example_matrices_zipped),axis=0)
 
-        if self.__config.batch_size > source_input_examples.shape[0]:
-            raise ValueError("batch_size (" + str(self.__config.batch_size) + ") > #{examples}=" + str(source_input_examples.shape[0]))
+        validation_source_input_examples = np.concatenate(tuple(sentence_example_matrices[0] for sentence_example_matrices in validation_sentence_example_matrices_zipped), axis=0)
+        validation_target_input_examples = np.concatenate(tuple(sentence_example_matrices[1] for sentence_example_matrices in validation_sentence_example_matrices_zipped), axis=0)
+        validation_target_output_examples = np.concatenate(tuple(sentence_example_matrices[2] for sentence_example_matrices in validation_sentence_example_matrices_zipped), axis=0)
 
-        print('source_input_examples.shape, target_input_examples.shape, target_output_examples.shape:',source_input_examples.shape, target_input_examples.shape, target_output_examples.shape)
+        test_source_input_examples = np.concatenate(tuple(sentence_example_matrices[0] for sentence_example_matrices in test_sentence_example_matrices_zipped), axis=0)
+        test_target_input_examples = np.concatenate(tuple(sentence_example_matrices[1] for sentence_example_matrices in test_sentence_example_matrices_zipped), axis=0)
+        test_target_output_examples = np.concatenate(tuple(sentence_example_matrices[2] for sentence_example_matrices in test_sentence_example_matrices_zipped), axis=0)
 
-        return source_input_examples, target_input_examples, target_output_examples
 
-    def __sentence_dataframe_to_examples(self, sentence_dict):
-        # print('def __sentence_dataframe_to_examples(self, sentence_dataframe):')
+
+        if self.__config.train_batch_size > train_source_input_examples.shape[0]:
+            raise ValueError("train_batch_size (" + str(self.__config.train_batch_size) + ") > #{examples}=" + str(train_source_input_examples.shape[0]))
+
+        Dataset = namedtuple('Dataset', ['source_input_examples', 'target_input_examples', 'target_output_examples'])
+
+        return (
+            Dataset(
+                source_input_examples=train_source_input_examples,
+                target_input_examples=train_target_input_examples,
+                target_output_examples=train_target_output_examples
+            ),
+            Dataset(
+                source_input_examples=validation_source_input_examples,
+                target_input_examples=validation_target_input_examples,
+                target_output_examples=validation_target_output_examples
+            ),
+            Dataset(
+                source_input_examples=test_source_input_examples,
+                target_input_examples=test_target_input_examples,
+                target_output_examples=test_target_output_examples
+            )
+        )
+
+    def __sentence_dict_to_examples(self, sentence_dict):
+        """Turns a sentence dict into windows and contained analyses into list format. Horizontal padding is added."""
         source_input_sequences = []
         target_input_sequences = []
         target_output_sequences = []
 
         analysis_id = 0
-        while analysis_id+self.__config.window_length <= len(sentence_dict['word']):
-            window_correct_analyses = sentence_dict['correct_analysis_vector'][analysis_id:analysis_id+self.__config.window_length]
+        while analysis_id+self.__config.network_window_length <= len(sentence_dict['word']):
+            window_correct_analyses = sentence_dict['correct_analysis_vector'][analysis_id:analysis_id+self.__config.network_window_length]
 
             source_input_sequence = []
             for analysis_list in window_correct_analyses[:-1]:
@@ -253,8 +324,8 @@ class DataProcessor(object):
 
             analysis_id+=1
 
-        source_input_examples = self.pad_batch(source_input_sequences, self.__config.max_source_sequence_length)
-        target_input_examples = self.pad_batch(target_input_sequences, self.__config.max_target_sequence_length)
-        target_output_examples = self.pad_batch(target_output_sequences, self.__config.max_target_sequence_length)
+        source_input_examples = self.pad_batch(source_input_sequences, self.__config.network_max_source_sequence_length)
+        target_input_examples = self.pad_batch(target_input_sequences, self.__config.network_max_target_sequence_length)
+        target_output_examples = self.pad_batch(target_output_sequences, self.__config.network_max_target_sequence_length)
 
         return source_input_examples, target_input_examples, target_output_examples

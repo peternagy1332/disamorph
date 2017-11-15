@@ -29,16 +29,12 @@ class Disambiguator(object):
         self.__data_processor = DataProcessor(model_configuration, analyses_processor)
 
         # Building train model
-        build_train_model = BuildTrainModel(model_configuration,
-                                            self.__analyses_processor.vocabulary,
-                                            self.__analyses_processor.inverse_vocabulary)
+        build_train_model = BuildTrainModel(model_configuration, self.__analyses_processor.vocabulary, self.__analyses_processor.inverse_vocabulary)
 
         build_train_model.create_model()
 
         # Building inference model
-        build_inference_model = BuildInferenceModel(model_configuration,
-                                                    self.__analyses_processor.inverse_vocabulary,
-                                                    build_train_model)
+        build_inference_model = BuildInferenceModel(model_configuration, self.__analyses_processor.inverse_vocabulary, build_train_model)
 
         self.__inference_model = build_inference_model.create_model()
 
@@ -47,7 +43,7 @@ class Disambiguator(object):
 
     def __collect_analyses_for_each_word_in_window(self, sentence_words, word_in_sentence_id, in_vector_format=True):
         window_word_analyses = []
-        for id_in_window in range(word_in_sentence_id, word_in_sentence_id + self.__config.window_length):
+        for id_in_window in range(word_in_sentence_id, word_in_sentence_id + self.__config.network_window_length):
             word = sentence_words[id_in_window]
 
             if in_vector_format:
@@ -68,14 +64,14 @@ class Disambiguator(object):
 
         word_in_sentence_id = 0
 
-        while word_in_sentence_id <= len(corpus_words) - self.__config.window_length + 1:
+        while word_in_sentence_id <= len(corpus_words) - self.__config.network_window_length + 1:
             # Is last window in sentence
-            if (word_in_sentence_id + self.__config.window_length - 1 == len(corpus_words)) or \
-                    (corpus_words[word_in_sentence_id + self.__config.window_length - 1] == self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]):
+            if (word_in_sentence_id + self.__config.network_window_length - 1 == len(corpus_words)) or \
+                    (corpus_words[word_in_sentence_id + self.__config.network_window_length - 1] == self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]):
 
                 padded_sentence_batch = self.__data_processor.pad_batch(
                     windows_combination_vectors_in_sentence,
-                    self.__config.max_source_sequence_length,
+                    self.__config.network_max_source_sequence_length,
                     self.__config.inference_batch_size
                 )
 
@@ -84,7 +80,7 @@ class Disambiguator(object):
                 windows_combination_vectors_in_sentence = []
                 windows_combinations_in_sentence = []
 
-                word_in_sentence_id += self.__config.window_length - 1
+                word_in_sentence_id += self.__config.network_window_length - 1
                 continue
 
             # Pipeline alike processing of current word
@@ -144,7 +140,7 @@ class Disambiguator(object):
                             padded_sentence_part_batch = np.matrix(
                                 self.__data_processor.pad_batch(
                                     padded_sentence_batch[i:],
-                                    self.__config.max_source_sequence_length,
+                                    self.__config.network_max_source_sequence_length,
                                     self.__config.inference_batch_size
                                 )
                             )
@@ -205,7 +201,7 @@ class Disambiguator(object):
     def disambiguate_tokenized_sentences(self, tokenized_sentences):
         flattened_corpus_words_with_SOS_before_sentences = []
         for tokenized_sentence in tokenized_sentences:
-            flattened_corpus_words_with_SOS_before_sentences += [self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]]*(self.__config.window_length-1) +tokenized_sentence
+            flattened_corpus_words_with_SOS_before_sentences += [self.__analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]]*(self.__config.network_window_length-1) +tokenized_sentence
 
         disambiguated_analyses_for_sentences = []
         for disambiguated_analyses in self.disambiguated_analyses_by_sentence_generator(flattened_corpus_words_with_SOS_before_sentences):
@@ -291,7 +287,7 @@ class Disambiguator(object):
             words_to_disambiguate = test_sentence_dict['word']  # Including <SOS>
 
             disambiguated_sentence = next(self.disambiguated_analyses_by_sentence_generator(words_to_disambiguate))
-            correct_analyses = test_sentence_dict['correct_analysis'][self.__config.window_length - 1:]
+            correct_analyses = test_sentence_dict['correct_analysis'][self.__config.network_window_length - 1:]
 
             matching_analyses = 0
             if printAnalyses:
