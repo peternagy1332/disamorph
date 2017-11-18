@@ -1,15 +1,16 @@
 data:
+  sentences_to_read_num: 100
   train_dataset: data/szeged-judit/*
   train_matrices: data/train_matrices
   random_seed: 448
   example_resolution: morpheme
-  train_ratio: 0.8
-  validation_ratio: 0.1
+  train_ratio: 0.6
+  validation_ratio: 0.3
 inference:
   batch_size: 128
   transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
 network:
-  embedding_size: 8
+  embedding_size: 10
   hidden_layer_cell_type: LSTM
   hidden_layer_cells: 64
   hidden_layer_count: 2
@@ -25,13 +26,13 @@ train:
   loss_optimizer: MomentumOptimizer
   loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
-    - {learning_rate: 1.0,    until_global_step: 32000}
-    - {learning_rate: 0.1,    until_global_step: 64000}
-    - {learning_rate: 0.01,   until_global_step: 128000}
-    - {learning_rate: 0.001,  until_global_step: 192000}
-    - {learning_rate: 0.0001, until_global_step: 256000}
+    - {learning_rate: 1.0,    until_global_step: 512}
+    - {learning_rate: 0.5,    until_global_step: 1024}
+    - {learning_rate: 0.25,   until_global_step: 4096}
+    - {learning_rate: 0.125,  until_global_step: 8192}
+    - {learning_rate: 0.0625, until_global_step: 16384}
   shuffle_sentences: true
   shuffle_examples_in_batches: false
-  add_summary_modulo: 100
+  add_summary_modulo: 1
   validation_add_summary_modulo: 1
-  validation_modulo: 1
+  validation_modulo: 5

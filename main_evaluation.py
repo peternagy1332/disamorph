@@ -21,33 +21,23 @@ def main():
 
     model_configuration.printConfig()
 
-    # Setting seed
-    if model_configuration.data_random_seed is not None:
-        seed(model_configuration.data_random_seed)
-
-    # Loading train data
+    # Data utilities
     analyses_processor = AnalysesProcessor(model_configuration)
     data_processor = DataProcessor(model_configuration, analyses_processor)
 
-    sentence_dataframes = data_processor.get_sentence_dicts(False)
-
-    test_dataframe_id = int(round(len(sentence_dataframes)*model_configuration.test_sentences_rate))
-    test_dataframes = sentence_dataframes[-test_dataframe_id:]
-
-    train_dataframes = sentence_dataframes[:-test_dataframe_id]
-    if model_configuration.train_shuffle_sentences:
-        shuffle(train_dataframes)
+    train_sentence_dicts, validation_sentence_dicts, test_sentence_dicts = data_processor.get_split_sentence_dicts(False)
+    utils.print_elapsed_time()
 
     # Evaluating model
     disambiguator = Disambiguator(model_configuration, analyses_processor)
 
     print('Evaluating model on train dataset...')
-    disambiguator.evaluate_model(train_dataframes[:1000])
+    disambiguator.evaluate_model(train_sentence_dicts[:1000])
+    utils.print_elapsed_time()
 
     print('Evaluating model on test dataset...')
-    disambiguator.evaluate_model(test_dataframes)
+    disambiguator.evaluate_model(test_sentence_dicts)
 
-    utils.stop_stopwatch_and_print_running_time()
 
 if __name__ == '__main__':
     main()

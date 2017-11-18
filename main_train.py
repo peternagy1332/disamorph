@@ -30,13 +30,8 @@ def main():
 
     utils.print_elapsed_time()
 
-    # Building graph
-    build_train_model = BuildTrainModel(model_configuration, analyses_processor.vocabulary, analyses_processor.inverse_vocabulary)
-
-    model = build_train_model.create_model()
-
     # Begin training
-    morph_disam_trainer = Seq2SeqTrainer(build_train_model.train_graph, model_configuration, model, utils)
+    morph_disam_trainer = Seq2SeqTrainer(analyses_processor, model_configuration, utils)
 
 
     morph_disam_trainer.train(data_processor, sentence_dicts)

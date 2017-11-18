@@ -16,14 +16,6 @@ def main():
     utils.start_stopwatch()
     #utils.redirect_stdout('main-inference')
 
-    toy = False
-
-    if toy:
-        model_configuration.data_rows_to_read_num = 100
-        model_configuration.train_batch_size = 55
-        model_configuration.train_shuffle_sentences = True
-        model_configuration.train_save_modulo = 50
-
     disambiguator = Disambiguator(model_configuration)
 
     print("Enter corpus: ")
@@ -39,7 +31,7 @@ def main():
         print('-' * 60)
         sentence_id+=1
 
-    utils.stop_stopwatch_and_print_running_time()
+    utils.print_elapsed_time()
 
 if __name__ == '__main__':
     main()

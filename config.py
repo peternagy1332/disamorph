@@ -14,7 +14,7 @@ np.set_printoptions(linewidth=200, precision=2)
 class ModelConfiguration(object):
     __slots__ = ('train_shuffle_examples_in_batches', 'train_schedule',
                  'train_shuffle_sentences', 'train_epochs', 'train_loss_optimizer', 'train_loss_optimizer_kwargs',
-                 'train_continue_previous',
+                 'train_continue_previous', 'train_add_summary_modulo', 'train_validation_modulo', 'train_validation_add_summary_modulo',
                  'train_rebuild_vocabulary_file', 'train_batch_size', 'train_starter_learning_rate',
 
                  'data_random_seed', 'data_example_resolution', 'data_vocabulary_file',
@@ -26,16 +26,15 @@ class ModelConfiguration(object):
                  'network_hidden_layer_count', 'network_hidden_layer_cells', 'network_hidden_layer_cell_type',
                  'network_embedding_size', 'network_window_length', 'network_max_gradient_norm',
 
-                 'inference_maximum_iterations',
                  'inference_batch_size',
                  'inference_transducer_path',
 
-                 'embedding_labels_metadata',
                  'model_directory', 'model_name',
 
                  'marker_padding', 'marker_analysis_divider', 'marker_start_of_sentence',
-                 'marker_end_of_sentence', 'marker_unknown', 'marker_go', 'marker_vocabulary_start_index',
+                 'marker_end_of_sentence', 'marker_unknown', 'marker_go',
 
+                 'data_label_metadata_file',
                  'default_config_path')
 
     def __init__(self, parser):
@@ -104,10 +103,9 @@ class ModelConfiguration(object):
         self.marker_end_of_sentence = 3
         self.marker_unknown = 4
         self.marker_go = 5
-        self.marker_vocabulary_start_index = 6
 
         # Building file paths
-        self.embedding_labels_metadata = os.path.join(base_path,'data','metadata_'+self.data_example_resolution+'.tsv')
+        self.data_label_metadata_file = os.path.join(base_path, 'data', 'metadata_'+self.data_example_resolution+'.tsv')
         self.data_train_matrices = os.path.join(base_path, model_configuration['data']['train_matrices'], self.data_example_resolution)
         self.data_train_dataset = os.path.join(base_path, model_configuration['data']['train_dataset'])
         self.data_vocabulary_file = os.path.join(base_path, 'data', 'vocabulary_' + self.data_example_resolution + '.tsv')

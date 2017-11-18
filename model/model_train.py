@@ -9,25 +9,30 @@ class BuildTrainModel(object):
         self.__vocabulary = vocabulary
         self.__inverse_vocabulary = inverse_vocabulary
 
-        self.train_graph = tf.Graph()
+        self.__graph = tf.Graph()
 
-    def create_model(self):
-        with self.train_graph.as_default():
-            placeholders = self.__create_placeholders()
+    def create_model(self, graph = None):
+        # For validation model
+        if graph is None:
+            graph = self.__graph
+
+        with graph.as_default():
+            placeholders = self.create_placeholders()
 
             embedding_matrix = self.create_embedding()
 
             encoder_outputs, encoder_state = self.create_encoder(embedding_matrix, placeholders.encoder_inputs)
 
-            logits, output_sequences = self.__create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
+            logits, output_sequences = self.create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
 
-            Model = namedtuple('Model', ['placeholders', 'logits', 'output_sequences', 'embedding_matrix'])
+            Model = namedtuple('Model', ['placeholders', 'logits', 'output_sequences', 'embedding_matrix', 'graph'])
 
             return Model(
                 placeholders=placeholders,
                 logits=logits,
                 output_sequences=output_sequences,
-                embedding_matrix=embedding_matrix
+                embedding_matrix=embedding_matrix,
+                graph=graph
             )
 
     def create_embedding(self):
@@ -62,7 +67,7 @@ class BuildTrainModel(object):
 
         return tf.nn.rnn_cell.MultiRNNCell(cells)
 
-    def __create_placeholders(self):
+    def create_placeholders(self):
         Placeholders = namedtuple('Placeholders', ['encoder_inputs', 'decoder_inputs', 'decoder_outputs'])
 
         with tf.variable_scope('placeholders'):
@@ -117,7 +122,7 @@ class BuildTrainModel(object):
 
             return encoder_outputs, encoder_state
 
-    def __create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders):
+    def create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders):
         with tf.variable_scope('decoder'):
             decoder_rnn = self.create_rnn(False)
 
@@ -126,11 +131,13 @@ class BuildTrainModel(object):
             mechanism = tf.contrib.seq2seq.LuongAttention(
                 self.__config.network_hidden_layer_cells, encoder_outputs,
                 memory_sequence_length=decoder_inputs_sequence_length,
-                scale=False
+                scale=True # False
             )
 
             decoder_rnn = tf.contrib.seq2seq.AttentionWrapper(
-                decoder_rnn, mechanism, attention_layer_size=self.__config.network_hidden_layer_cells
+                decoder_rnn,
+                mechanism,
+                attention_layer_size=self.__config.network_hidden_layer_cells
             )
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, placeholders.decoder_inputs)

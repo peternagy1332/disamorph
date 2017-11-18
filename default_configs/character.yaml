@@ -1,5 +1,4 @@
 data:
-  #sentences_to_read_num: 100
   train_dataset: data/szeged-judit/*
   train_matrices: data/train_matrices
   random_seed: 448
@@ -8,29 +7,31 @@ data:
   validation_ratio: 0.1
 inference:
   batch_size: 128
-  maximum_iterations: 64
   transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
 network:
   embedding_size: 8
   hidden_layer_cell_type: LSTM
-  hidden_layer_cells: 32
-  hidden_layer_count: 4
+  hidden_layer_cells: 64
+  hidden_layer_count: 2
   max_gradient_norm: 5
-  max_source_sequence_length: 107
-  max_target_sequence_length: 64
+  max_source_sequence_length: 109
+  max_target_sequence_length: 61
   window_length: 5
-  dropout_keep_probability: 0.5
-  activation: sigmoid
+  dropout_keep_probability: 0.8
+  activation: null
 train:
   batch_size: 64
-  epochs: 1000
-  loss_optimizer: GradientDescentOptimizer
-  loss_optimizer_kwargs: {}
+  epochs: 100000
+  loss_optimizer: MomentumOptimizer
+  loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
-    - {learning_rate: 1.0,    until_global_step: 500}
-    - {learning_rate: 0.1,    until_global_step: 1000}
-    - {learning_rate: 0.01,   until_global_step: 1500}
-    - {learning_rate: 0.001,  until_global_step: 2000}
-    - {learning_rate: 0.0001, until_global_step: 3000}
+    - {learning_rate: 1.0,    until_global_step: 32000}
+    - {learning_rate: 0.1,    until_global_step: 64000}
+    - {learning_rate: 0.01,   until_global_step: 128000}
+    - {learning_rate: 0.001,  until_global_step: 192000}
+    - {learning_rate: 0.0001, until_global_step: 256000}
   shuffle_sentences: true
   shuffle_examples_in_batches: false
+  add_summary_modulo: 100
+  validation_add_summary_modulo: 100
+  validation_modulo: 1
