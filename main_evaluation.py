@@ -1,6 +1,5 @@
 import argparse
 import os
-from random import shuffle, seed
 
 from config import ModelConfiguration
 from data_processing.analyses_processor import AnalysesProcessor
@@ -11,10 +10,14 @@ from utils import Utils
 
 def main():
     parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-cfg', '--default-config', default=os.path.join('default_configs', 'character.yaml'))
+    parser.add_argument('-dcfg', '--default-config', default=os.path.join('default_configs', 'character.yaml'))
     parser.add_argument('-m', '--model-directory', required=True)
+    parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
 
     model_configuration = ModelConfiguration(parser)
+    model_configuration.train_shuffle_examples_in_batches = False
+    model_configuration.train_shuffle_sentences = False
+
     utils = Utils(model_configuration)
     utils.start_stopwatch()
     utils.redirect_stdout('main-evaluation')
@@ -32,12 +35,11 @@ def main():
     disambiguator = Disambiguator(model_configuration, analyses_processor)
 
     print('Evaluating model on train dataset...')
-    disambiguator.evaluate_model(train_sentence_dicts[:1000])
+    disambiguator.evaluate_model(train_sentence_dicts[:1000], True)
     utils.print_elapsed_time()
 
     print('Evaluating model on test dataset...')
-    disambiguator.evaluate_model(test_sentence_dicts)
-
+    disambiguator.evaluate_model(test_sentence_dicts, True)
 
 if __name__ == '__main__':
     main()

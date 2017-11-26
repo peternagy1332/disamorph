@@ -2,7 +2,6 @@ import argparse
 from config import ModelConfiguration
 from data_processing.analyses_processor import AnalysesProcessor
 from data_processing.data_processor import DataProcessor
-from model.model_train import BuildTrainModel
 from seq2seq_trainer import Seq2SeqTrainer
 from utils import Utils
 
@@ -11,6 +10,7 @@ def main():
     parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
     parser.add_argument('-dcfg', '--default-config', default=None)
     parser.add_argument('-m', '--model-directory', default=None)
+    parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
 
     model_configuration = ModelConfiguration(parser)
     utils = Utils(model_configuration)

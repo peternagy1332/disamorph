@@ -4,10 +4,9 @@ from tensorflow.python.layers import core as layers_core
 
 
 class BuildTrainModel(object):
-    def __init__(self, model_configuration, vocabulary, inverse_vocabulary):
+    def __init__(self, model_configuration, analyses_processor):
         self.__config = model_configuration
-        self.__vocabulary = vocabulary
-        self.__inverse_vocabulary = inverse_vocabulary
+        self.__analyses_processor = analyses_processor
 
         self.__graph = tf.Graph()
 
@@ -38,10 +37,9 @@ class BuildTrainModel(object):
     def create_embedding(self):
         with tf.variable_scope('embedding'):
             embedding_matrix = tf.get_variable('embedding_matrix',
-                                               [len(self.__inverse_vocabulary), self.__config.network_embedding_size],
+                                               [len(self.__analyses_processor.inverse_vocabulary), self.__config.network_embedding_size],
                                                dtype=tf.float32)
             return embedding_matrix
-
 
     def create_rnn(self, half=False):
         cells = []
@@ -130,40 +128,39 @@ class BuildTrainModel(object):
 
             mechanism = tf.contrib.seq2seq.LuongAttention(
                 self.__config.network_hidden_layer_cells, encoder_outputs,
-                memory_sequence_length=decoder_inputs_sequence_length,
-                scale=True # False
+                #memory_sequence_length=decoder_inputs_sequence_length,
+                memory_sequence_length=[self.__config.network_max_target_sequence_length]*self.__config.data_batch_size,
+                scale=True
             )
 
-            decoder_rnn = tf.contrib.seq2seq.AttentionWrapper(
-                decoder_rnn,
-                mechanism,
-                attention_layer_size=self.__config.network_hidden_layer_cells
+            attention_cell = tf.contrib.seq2seq.AttentionWrapper(
+                decoder_rnn, mechanism, attention_layer_size=self.__config.network_hidden_layer_cells
             )
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, placeholders.decoder_inputs)
 
             helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length, time_major=False)
 
-            projection_layer = layers_core.Dense(len(self.__inverse_vocabulary), use_bias=False)
+            projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), use_bias=False)
 
-            decoder_initial_state = decoder_rnn.zero_state(self.__config.train_batch_size, tf.float32).clone(cell_state=encoder_state)
+            decoder_initial_state = attention_cell.zero_state(self.__config.data_batch_size, tf.float32)
+            decoder_initial_state = decoder_initial_state.clone(cell_state=encoder_state)
 
             decoder = tf.contrib.seq2seq.BasicDecoder(
-                cell=decoder_rnn,
+                cell=attention_cell,
                 helper=helper,
                 initial_state=decoder_initial_state,
                 output_layer=projection_layer
             )
 
-            # output_time_major=True
             final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(
-                decoder #, output_time_major=False, swap_memory=True
+                decoder, output_time_major=False, swap_memory=True
             )
 
             logits = final_outputs.rnn_output
             output_sequences = final_outputs.sample_id
 
-            # label_first_dim(self.train_train_batch_size * self.network_max_target_sequence_length) = logit_first_dim(self.train_train_batch_size * self.max_target_Sequence_length)
+            # label_first_dim(self.train_data_batch_size * self.network_max_target_sequence_length) = logit_first_dim(self.train_data_batch_size * self.max_target_Sequence_length)
             #vertical_padding = tf.zeros([self.__config.network_max_target_sequence_length-tf.reduce_max(decoder_inputs_sequence_length), len(self.__inverse_vocabulary)], dtype=tf.float32)
             #logits = tf.map_fn(lambda logit: tf.concat([logit, vertical_padding], axis=0), logits)
 

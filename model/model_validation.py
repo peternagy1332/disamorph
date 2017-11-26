@@ -7,12 +7,10 @@ from model.model_train import BuildTrainModel
 
 
 class BuildValidationModel(object):
-    def __init__(self, model_configuration, vocabulary, inverse_vocabulary):
+    def __init__(self, model_configuration, analyses_processor):
         self.__config = model_configuration
-        self.__vocabulary = vocabulary
-        self.__inverse_vocabulary = inverse_vocabulary
 
-        self.__build_train_model = BuildTrainModel(model_configuration, vocabulary, inverse_vocabulary)
+        self.__build_train_model = BuildTrainModel(model_configuration, analyses_processor)
 
         self.__graph = tf.Graph()
 
@@ -56,7 +54,7 @@ class BuildValidationModel(object):
                     dtype=self.__train_model.logits.dtype
                 )
 
-                loss = tf.reduce_sum(cross_entropy * target_weights) / tf.to_float(self.__config.train_batch_size)
+                loss = tf.reduce_sum(cross_entropy * target_weights) / tf.to_float(self.__config.data_batch_size)
 
                 # Accuracy
                 correct_elements = tf.equal(labels, self.__train_model.output_sequences * tf.cast(target_weights, dtype=tf.int32))

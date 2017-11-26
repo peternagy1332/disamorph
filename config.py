@@ -10,53 +10,54 @@ from utils import Utils
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 np.set_printoptions(linewidth=200, precision=2)
+np.seterr(divide='ignore', invalid='ignore')
 
 class ModelConfiguration(object):
     __slots__ = ('train_shuffle_examples_in_batches', 'train_schedule',
                  'train_shuffle_sentences', 'train_epochs', 'train_loss_optimizer', 'train_loss_optimizer_kwargs',
                  'train_continue_previous', 'train_add_summary_modulo', 'train_validation_modulo', 'train_validation_add_summary_modulo',
-                 'train_rebuild_vocabulary_file', 'train_batch_size', 'train_starter_learning_rate',
+                 'train_rebuild_vocabulary_file', 'train_starter_learning_rate',
 
                  'data_random_seed', 'data_example_resolution', 'data_vocabulary_file',
                  'data_train_ratio', 'data_validation_ratio', 'data_sentences_to_read_num',
-                 'data_train_matrices', 'data_train_dataset',
+                 'data_train_matrices', 'data_train_dataset', 'data_batch_size',
 
                  'network_max_source_sequence_length', 'network_max_target_sequence_length',
                  'network_dropout_keep_probability', 'network_activation',
                  'network_hidden_layer_count', 'network_hidden_layer_cells', 'network_hidden_layer_cell_type',
                  'network_embedding_size', 'network_window_length', 'network_max_gradient_norm',
 
-                 'inference_batch_size',
                  'inference_transducer_path',
+                 'inference_decoder_type',
+                 'inference_beam_width',
+                 'use_train_model',
 
                  'model_directory', 'model_name',
 
                  'marker_padding', 'marker_analysis_divider', 'marker_start_of_sentence',
                  'marker_end_of_sentence', 'marker_unknown', 'marker_go',
 
-                 'data_label_metadata_file',
-                 'default_config_path')
+                 'data_label_metadata_file')
 
     def __init__(self, parser):
         args = parser.parse_args()
-
-        # For resolving absolute paths
-        base_path = os.path.dirname(__file__)
-
-        # Locating default config path
-        if args.default_config is None: self.default_config_path = os.path.join(base_path, 'default_configs','character.yaml')
-        else: self.default_config_path = args.default_config
 
         # Overridable optional variables
         self.train_loss_optimizer_kwargs = {}
         self.data_sentences_to_read_num = None
 
-        # Loading default config file
-        with open(self.default_config_path, 'r', encoding='utf8') as default_config_file:
-            default_config = yaml.safe_load(default_config_file)
+        # For resolving absolute paths
+        base_path = os.path.dirname(__file__)
 
         # If it is a new model
         if args.model_directory is None:
+            if args.default_config is None:
+                raise ValueError('You must provide the default config path a train a new model.')
+
+            # Loading default config file
+            with open(args.default_config, 'r', encoding='utf8') as default_config_file:
+                default_config = yaml.safe_load(default_config_file)
+
             # Building model name
             new_dir_name = datetime.datetime.fromtimestamp(time.time()).strftime('%m%d-%H%M%S')+'.'+\
                            default_config['network']['hidden_layer_cell_type']+'x'+\
@@ -84,7 +85,7 @@ class ModelConfiguration(object):
                 # Opening existing model config and merge onto the default config
                 with open(os.path.join(self.model_directory, 'model_configuration.yaml'), 'r', encoding='utf8') as model_configuration_file:
                     model_configuration = yaml.safe_load(model_configuration_file)
-                    model_configuration = {**default_config, **model_configuration}
+                    #model_configuration = {**default_config, **model_configuration}
                 self.train_continue_previous = True
 
             else:
@@ -103,6 +104,12 @@ class ModelConfiguration(object):
         self.marker_end_of_sentence = 3
         self.marker_unknown = 4
         self.marker_go = 5
+
+        # By default the program uses the latest model saved by validation cycle
+        if hasattr(args, 'use_train_model'):
+            self.use_train_model = args.use_train_model
+        else:
+            self.use_train_model = False
 
         # Building file paths
         self.data_label_metadata_file = os.path.join(base_path, 'data', 'metadata_'+self.data_example_resolution+'.tsv')

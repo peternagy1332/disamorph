@@ -89,7 +89,7 @@ class DataProcessor(object):
 
                     sentence_dict['correct_analysis_vector'].append(self.__analyses_processor.lookup_features_to_ids(features_and_tags))
                     sentence_dict['correct_analysis_tape'].append(features_and_tags)
-                    sentence_dict['correct_analysis'].append(" ".join(features_and_tags))
+                    sentence_dict['correct_analysis'].append("".join(features_and_tags))
 
                     read_rows+=1
 
@@ -142,14 +142,14 @@ class DataProcessor(object):
 
         return flattened_markered_combinations
 
-    def pad_batch(self, batch_list, max_sequence_length, min_train_batch_size = None):
+    def pad_batch_list(self, batch_list, max_sequence_length, min_data_batch_size = None):
         horizontal_pad = list(map(lambda sequence: sequence + [self.__config.marker_padding] * (max_sequence_length - len(sequence)),batch_list))
 
         # Vertical padding
-        if min_train_batch_size is not None:
+        if min_data_batch_size is not None:
             padding_row = [self.__config.marker_padding] * max_sequence_length
 
-            for i in range(min_train_batch_size - len(horizontal_pad)):
+            for i in range(min_data_batch_size - len(horizontal_pad)):
                 horizontal_pad.append(padding_row)
 
         return horizontal_pad
@@ -245,7 +245,6 @@ class DataProcessor(object):
         if self.__sentence_source_input_examples_matrices == []:
             self.__sentence_dicts_to_sentence_matrices(sentence_dicts)
 
-
         # Splitting sentence matrices list to train, validation, test
         sentence_example_matrices_zipped = list(zip(
             self.__sentence_source_input_examples_matrices,
@@ -274,6 +273,16 @@ class DataProcessor(object):
         else:
             print('\tUsing sentences in original order.')
 
+        # with open('toy_train_source_sequences.txt','w',encoding='utf8') as f:
+        #     for si, ti, to in train_sentence_example_matrices_zipped:
+        #         for sirow, tirow, torow in zip(si.tolist(), ti.tolist(), to.tolist()):
+        #             # f.write("".join(self.analyses_processor.lookup_ids_to_features(sirow)).replace("<PAD>", "") +'\t' +
+        #             #         "".join(self.analyses_processor.lookup_ids_to_features(tirow)).replace("<PAD>", "") + '\t' +
+        #             #         "".join(self.analyses_processor.lookup_ids_to_features(torow)).replace("<PAD>", "") + os.linesep)
+        #             f.write("".join(self.analyses_processor.lookup_ids_to_features(sirow)).replace("<PAD>", "") + os.linesep)
+        #         f.write(os.linesep)
+
+
         train_source_input_examples = np.concatenate(tuple(sentence_example_matrices[0] for sentence_example_matrices in train_sentence_example_matrices_zipped),axis=0)
         train_target_input_examples = np.concatenate(tuple(sentence_example_matrices[1] for sentence_example_matrices in train_sentence_example_matrices_zipped),axis=0)
         train_target_output_examples = np.concatenate(tuple(sentence_example_matrices[2] for sentence_example_matrices in train_sentence_example_matrices_zipped),axis=0)
@@ -286,8 +295,8 @@ class DataProcessor(object):
         test_target_input_examples = np.concatenate(tuple(sentence_example_matrices[1] for sentence_example_matrices in test_sentence_example_matrices_zipped), axis=0)
         test_target_output_examples = np.concatenate(tuple(sentence_example_matrices[2] for sentence_example_matrices in test_sentence_example_matrices_zipped), axis=0)
 
-        if self.__config.train_batch_size > train_source_input_examples.shape[0]:
-            raise ValueError("train_batch_size (" + str(self.__config.train_batch_size) + ") > #{examples}=" + str(train_source_input_examples.shape[0]))
+        if self.__config.data_batch_size > train_source_input_examples.shape[0]:
+            raise ValueError("data_batch_size (" + str(self.__config.data_batch_size) + ") > #{examples}=" + str(train_source_input_examples.shape[0]))
 
         Dataset = namedtuple('Dataset', ['source_input_examples', 'target_input_examples', 'target_output_examples'])
 
@@ -357,7 +366,7 @@ class DataProcessor(object):
             #         if re.match(r'\[[^]]*\]', feature_or_tag, re.UNICODE):
             #             break
             #
-            #         feature_or_tag_buffer.append(self.__analyses_processor.vocabulary.get(feature_or_tag, self.__config.marker_unknown))
+            #         feature_or_tag_buffer.append(self.analyses_processor.vocabulary.get(feature_or_tag, self.__config.marker_unknown))
             #
             #     source_input_sequence.extend(feature_or_tag_buffer)
             # elif self.__config.data_example_resolution == 'morpheme':
@@ -366,8 +375,8 @@ class DataProcessor(object):
             target_output_sequence = window_correct_analysis_vectors[-1] + [self.__config.marker_end_of_sentence]
             target_input_sequence = [self.__config.marker_go] + window_correct_analysis_vectors[-1]
 
-            # print("".join(self.__analyses_processor.lookup_ids_to_features(source_input_sequence)),'\t',\
-            #       "".join(self.__analyses_processor.lookup_ids_to_features(target_output_sequence)))
+            # print("".join(self.analyses_processor.lookup_ids_to_features(source_input_sequence)),'\t',\
+            #       "".join(self.analyses_processor.lookup_ids_to_features(target_output_sequence)))
 
             # Stat
             if self.__stat['longest_source_input_list'] is None:
@@ -389,8 +398,8 @@ class DataProcessor(object):
             analysis_id+=1
 
 
-        source_input_examples = self.pad_batch(source_input_sequences, self.__config.network_max_source_sequence_length)
-        target_input_examples = self.pad_batch(target_input_sequences, self.__config.network_max_target_sequence_length)
-        target_output_examples = self.pad_batch(target_output_sequences, self.__config.network_max_target_sequence_length)
+        source_input_examples = self.pad_batch_list(source_input_sequences, self.__config.network_max_source_sequence_length)
+        target_input_examples = self.pad_batch_list(target_input_sequences, self.__config.network_max_target_sequence_length)
+        target_output_examples = self.pad_batch_list(target_output_sequences, self.__config.network_max_target_sequence_length)
 
         return source_input_examples, target_input_examples, target_output_examples
