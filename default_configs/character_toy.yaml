@@ -9,10 +9,10 @@ data:
   batch_size: 15
 inference:
   transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
-  decoder_type: beam_search
+  decoder_type: greedy
   beam_width: 5
 network:
-  embedding_size: 10
+  embedding_size: 8
   hidden_layer_cell_type: LSTM
   hidden_layer_cells: 64
   hidden_layer_count: 2

@@ -35,11 +35,16 @@ def main():
     disambiguator = Disambiguator(model_configuration, analyses_processor)
 
     print('Evaluating model on train dataset...')
-    disambiguator.evaluate_model(train_sentence_dicts[:1000], True)
+    disambiguator.evaluate_model(train_sentence_dicts[:1000], False)
+    utils.print_elapsed_time()
+
+    print('Evaluating model on validation dataset...')
+    disambiguator.evaluate_model(validation_sentence_dicts, False)
     utils.print_elapsed_time()
 
     print('Evaluating model on test dataset...')
-    disambiguator.evaluate_model(test_sentence_dicts, True)
+    disambiguator.evaluate_model(test_sentence_dicts, False)
+    utils.print_elapsed_time()
 
 if __name__ == '__main__':
     main()

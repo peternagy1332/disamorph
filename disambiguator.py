@@ -44,11 +44,14 @@ class Disambiguator(object):
             if self.__config.use_train_model:
                 print('\tUsing latest train model.')
                 #inference_saver.restore(self.__inference_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name))
-                inference_saver.restore(self.__inference_session, tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints')))
+                latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints'))
             else:
                 print('\tUsing latest validation model.')
                 #inference_saver.restore(self.__inference_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name))
-                inference_saver.restore(self.__inference_session, tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'validation_checkpoints')))
+                latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'validation_checkpoints'))
+
+            print('\tRESTORED FROM:', latest_checkpoint)
+            inference_saver.restore(self.__inference_session, latest_checkpoint)
 
     def __collect_analyses_for_source_words_in_window(self, sentence_words, word_in_sentence_id, in_vector_format=True):
         window_word_analyses = []
@@ -78,7 +81,7 @@ class Disambiguator(object):
                 padded_sentence_batch = self.__data_processor.pad_batch_list(
                     windows_combination_vectors_in_sentence,
                     self.__config.network_max_source_sequence_length,
-                    self.__config.inference_batch_size
+                    self.__config.data_batch_size
                 )
 
                 yield windows_combinations_in_sentence, padded_sentence_batch
@@ -97,7 +100,7 @@ class Disambiguator(object):
             last_word = corpus_words[word_in_sentence_id+self.__config.network_window_length-1]
             window_combinations_vector[-1] = self.analyses_processor.get_all_extra_info_vectors_for_word(last_word)
 
-            # TODO: check truncation (window_combinations_vector[:self.__config.inference_batch_size])
+            # TODO: check truncation (window_combinations_vector[:self.__config.data_batch_size])
             combinations_in_window = list(itertools.product(*window_combinations_vector))
 
             vectorized_window_combinations = self.__data_processor.format_window_word_analyses(combinations_in_window)
@@ -148,12 +151,12 @@ class Disambiguator(object):
 
     def __corpus_words_to_windows_and_probabilities(self, corpus_words):
         for windows_combinations_in_sentence, padded_sentence_batch in self.__create_analysis_window_batch_generator(corpus_words):
-            # If the all the combinations was less or equal then inference_batch_size
-            if len(padded_sentence_batch) == self.__config.inference_batch_size:
+            # If the all the combinations was less or equal then data_batch_size
+            if len(padded_sentence_batch) == self.__config.data_batch_size:
                 padded_sentence_batch = np.matrix(padded_sentence_batch)
                 scores, output_sequences = self.feed_into_network(padded_sentence_batch)
 
-                horizontal_padding = np.zeros(shape=(self.__config.inference_batch_size, self.__config.network_max_target_sequence_length - output_sequences.shape[1]))
+                horizontal_padding = np.zeros(shape=(self.__config.data_batch_size, self.__config.network_max_target_sequence_length - output_sequences.shape[1]))
                 output_sequences = np.concatenate((output_sequences, horizontal_padding), axis=1)
 
                 yield windows_combinations_in_sentence, scores, output_sequences
@@ -164,14 +167,14 @@ class Disambiguator(object):
                 output_sequences = []
 
                 while inference_batch_pointer < len(padded_sentence_batch):
-                    if inference_batch_pointer + self.__config.inference_batch_size <= len(padded_sentence_batch):
-                        padded_sentence_part_batch = np.matrix(padded_sentence_batch[inference_batch_pointer:inference_batch_pointer+self.__config.inference_batch_size])
+                    if inference_batch_pointer + self.__config.data_batch_size <= len(padded_sentence_batch):
+                        padded_sentence_part_batch = np.matrix(padded_sentence_batch[inference_batch_pointer:inference_batch_pointer+self.__config.data_batch_size])
                     else:
                         padded_sentence_part_batch = np.matrix(
                             self.__data_processor.pad_batch_list(
                                 padded_sentence_batch[inference_batch_pointer:],
                                 self.__config.network_max_source_sequence_length,
-                                self.__config.inference_batch_size
+                                self.__config.data_batch_size
                             )
                         )
 
@@ -179,11 +182,11 @@ class Disambiguator(object):
 
                     probabilities.extend(scores)
 
-                    horizontal_padding = np.zeros(shape=(self.__config.inference_batch_size, self.__config.network_max_target_sequence_length-r_output_sequences.shape[1]))
+                    horizontal_padding = np.zeros(shape=(self.__config.data_batch_size, self.__config.network_max_target_sequence_length-r_output_sequences.shape[1]))
                     padded_output_sequences = np.concatenate((r_output_sequences, horizontal_padding), axis=1)
                     output_sequences.append(padded_output_sequences)
 
-                    inference_batch_pointer+=self.__config.inference_batch_size
+                    inference_batch_pointer+=self.__config.data_batch_size
 
                 output_sequences = np.concatenate(tuple(partial_output_sequence for partial_output_sequence in output_sequences), axis=0)
 
@@ -310,7 +313,6 @@ class Disambiguator(object):
 
     def evaluate_model(self, sentence_dicts, printAnalyses = False):
         disambiguation_accuracies = []
-        network_output_accuracies = []
         print('\t#{sentences}: ', len(sentence_dicts))
         try:
             for sentence_id, sentence_dict in enumerate(sentence_dicts):
@@ -355,8 +357,7 @@ class Disambiguator(object):
 
                 if (sentence_id+1) % 5 == 0:
                     average_disambiguation_accuracy = sum(disambiguation_accuracies) / len(disambiguation_accuracies)
-                    average_network_output_accuracy = sum(network_output_accuracies) / len(network_output_accuracies)
-                    print('\tAverage disambiguation accuracy: %-6.2f Network output accuracy: %.2f' % (average_disambiguation_accuracy, average_network_output_accuracy))
+                    print('\tDisambiguation accuracies: min - %-6.2f max - %-6.2f avg - %6.2f' % (min(disambiguation_accuracies), max(disambiguation_accuracies), average_disambiguation_accuracy))
 
         except KeyboardInterrupt:
             # fig = plt.figure()

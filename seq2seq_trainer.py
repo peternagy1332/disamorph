@@ -116,7 +116,9 @@ class Seq2SeqTrainer(object):
 
             print('\tValidation: restoring latest train model...')
             #validation_saver.restore(self.__validation_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name))
-            validation_saver.restore(self.__validation_session, tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints')))
+            latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints'))
+            print('\tRESTORED_FROM:',latest_checkpoint)
+            validation_saver.restore(self.__validation_session, latest_checkpoint)
 
             # with self.__train_model.graph.as_default():
             #     train_saver.restore(self.__train_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name))
@@ -190,7 +192,7 @@ class Seq2SeqTrainer(object):
                 self.__global_minimum_loss = avg_validation_loss
                 save_path = train_saver.save(self.__train_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name), r_global_step)
                 projector.visualize_embeddings(validation_summary_writer, self.__validation_model.projector_config)
-                print('\tSAVED to: ', save_path, '\n')
+                print('\tSAVED TO: ', save_path, '\n')
 
             print()
 
@@ -205,11 +207,14 @@ class Seq2SeqTrainer(object):
                 if self.__config.use_train_model:
                     print('\tRestoring model from latest train checkpoint...')
                     #train_saver.restore(self.__train_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name))
-                    train_saver.restore(self.__train_session, tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints')))
+                    latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints'))
                 else:
                     print('\tRestoring model from latest validation checkpoint...')
                     #train_saver.restore(self.__train_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name))
-                    train_saver.restore(self.__train_session, tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'validation_checkpoints')))
+                    latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'validation_checkpoints'))
+
+                print('\tRESTORED FROM:',latest_checkpoint)
+                train_saver.restore(self.__train_session, latest_checkpoint)
             else:
                 print('\tTraining new model...')
                 self.__train_session.run(tf.global_variables_initializer())
