@@ -27,7 +27,7 @@ class Seq2SeqTrainer(object):
         self.__validation_loss_sum = 0.0
         self.__validation_accuracy_sum = 0.0
 
-        self.__global_minimum_loss = None
+        self.__global_minimum_average_validation_loss = None
 
     def __create_train_variables(self):
         with tf.variable_scope('metrics'):
@@ -110,6 +110,11 @@ class Seq2SeqTrainer(object):
             return loss, learning_rate, global_step, accuracy, update_step, merged_summary_op, stat_ops, output_sequences
 
     def __validate_model(self, validation_dataset, train_saver, r_global_step, total_train_batches):
+        validation_losses = []
+        validation_accuracies = []
+        validation_batch_ptr = 0
+        avg_validation_loss = None
+
         with self.__validation_model.graph.as_default():
 
             validation_saver = tf.train.Saver()
@@ -117,7 +122,7 @@ class Seq2SeqTrainer(object):
             print('\tValidation: restoring latest train model...')
             #validation_saver.restore(self.__validation_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name))
             latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints'))
-            print('\tRESTORED_FROM:',latest_checkpoint)
+            print('\tRESTORING_FROM:',latest_checkpoint)
             validation_saver.restore(self.__validation_session, latest_checkpoint)
 
             # with self.__train_model.graph.as_default():
@@ -128,10 +133,6 @@ class Seq2SeqTrainer(object):
 
             if validation_dataset.source_input_examples.shape[0] < self.__config.data_batch_size:
                 raise ValueError('Validation dataset is too small: validation_dataset.source_input_examples.shape[0]='+str(validation_dataset.source_input_examples.shape[0])+'<data_batch_size='+str(self.__config.data_batch_size))
-
-            validation_losses = []
-            validation_accuracies = []
-            validation_batch_ptr = 0
 
             validation_summary_writer = tf.summary.FileWriter(os.path.join(self.__config.model_directory, 'validation_checkpoints'), graph=self.__validation_model.graph)
 
@@ -184,17 +185,20 @@ class Seq2SeqTrainer(object):
             print('\n\tValidation losses     - min: %-12g max: %-12g avg: %-12g' % (min(validation_losses), max(validation_losses), avg_validation_loss))
             print('\tValidation accuracies - min: %-12g max: %-12g avg: %-12g\n' % (min(validation_accuracies), max(validation_accuracies), avg_validation_accuracy))
 
-            if self.__global_minimum_loss is None:
-                self.__global_minimum_loss = avg_validation_loss
+            if self.__global_minimum_average_validation_loss is None:
+                self.__global_minimum_average_validation_loss = avg_validation_loss
 
-            if avg_validation_loss <= self.__global_minimum_loss:
-                print('\tAVGLOSS<MIN_AVGLOSS (%g<%g) => Saving model...' % (avg_validation_loss, self.__global_minimum_loss))
-                self.__global_minimum_loss = avg_validation_loss
-                save_path = train_saver.save(self.__train_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name), r_global_step)
+            if avg_validation_loss <= self.__global_minimum_average_validation_loss:
                 projector.visualize_embeddings(validation_summary_writer, self.__validation_model.projector_config)
+
+        with self.__train_model.graph.as_default():
+            if avg_validation_loss <= self.__global_minimum_average_validation_loss:
+                print('\tAVGLOSS<MIN_AVGLOSS (%g<%g) => Saving model...' % (avg_validation_loss, self.__global_minimum_average_validation_loss))
+                self.__global_minimum_average_validation_loss = avg_validation_loss
+                save_path = train_saver.save(self.__train_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name), r_global_step)
                 print('\tSAVED TO: ', save_path, '\n')
 
-            print()
+        print()
 
     def __run_epochs(self, data_processor, sentence_dicts):
         with self.__train_model.graph.as_default():
@@ -213,7 +217,7 @@ class Seq2SeqTrainer(object):
                     #train_saver.restore(self.__train_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name))
                     latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'validation_checkpoints'))
 
-                print('\tRESTORED FROM:',latest_checkpoint)
+                print('\tRESTORING FROM:',latest_checkpoint)
                 train_saver.restore(self.__train_session, latest_checkpoint)
             else:
                 print('\tTraining new model...')

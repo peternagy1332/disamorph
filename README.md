@@ -30,3 +30,13 @@ cat ./* | cut -f1 | sort | uniq | hfst-lookup --cascade=composition ../../emMorp
 ```
 cat * | cut -f9 | sort | grep '^$' | wc -l
 ```
+
+### Number of analyses of unique words
+```
+cat * | grep -e '^.' | cut -f1 | sort | uniq | hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ../../../../programs/emMorph/hfst/hu.hfstol | grep -e '.' | sort | uniq | wc -l
+```
+
+### Number of analyses of non-unique words
+```
+cat * | grep -e '^.' | cut -f1 | hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ../../../../programs/emMorph/hfst/hu.hfstol | grep -e '.' | wc -l
+```
