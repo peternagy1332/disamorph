@@ -16,7 +16,7 @@ class ModelConfiguration(object):
     __slots__ = ('train_shuffle_examples_in_batches', 'train_schedule',
                  'train_shuffle_sentences', 'train_epochs', 'train_loss_optimizer', 'train_loss_optimizer_kwargs',
                  'train_continue_previous', 'train_add_summary_modulo', 'train_validation_modulo', 'train_validation_add_summary_modulo',
-                 'train_rebuild_vocabulary_file', 'train_starter_learning_rate',
+                 'train_rebuild_vocabulary_file', 'train_starter_learning_rate', 'train_visualization',
 
                  'data_random_seed', 'data_example_resolution', 'data_vocabulary_file',
                  'data_train_ratio', 'data_validation_ratio', 'data_sentences_to_read_num',
@@ -44,6 +44,7 @@ class ModelConfiguration(object):
 
         # Overridable optional variables
         self.train_loss_optimizer_kwargs = {}
+        self.train_visualization = False
         self.data_sentences_to_read_num = None
 
         # For resolving absolute paths

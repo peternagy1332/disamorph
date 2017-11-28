@@ -23,6 +23,7 @@ network:
   dropout_keep_probability: 0.8
   activation: null
 train:
+  visualization: true
   epochs: 100000
   loss_optimizer: AdamOptimizer
 #  loss_optimizer_kwargs: {momentum: 0.5}

@@ -23,6 +23,7 @@ network:
   dropout_keep_probability: 0.8
   activation: null
 train:
+  visualization: false
   epochs: 100000
   loss_optimizer: MomentumOptimizer
   loss_optimizer_kwargs: {momentum: 0.5}
@@ -36,4 +37,4 @@ train:
   shuffle_examples_in_batches: false
   add_summary_modulo: 1
   validation_add_summary_modulo: 1
-  validation_modulo: 50
+  validation_modulo: 10

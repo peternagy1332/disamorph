@@ -10,6 +10,8 @@ from random import shuffle
 
 import re
 
+from utils import Colors
+
 
 class DataProcessor(object):
     def __init__(self, model_configuration, analyses_processor):
@@ -31,7 +33,7 @@ class DataProcessor(object):
 
 
     def get_sentence_dicts(self, use_saved_matrices=True):
-        print('def get_sentence_dicts(self, use_saved_matrices='+str(use_saved_matrices)+'):')
+        #print('def get_sentence_dicts(self, use_saved_matrices='+str(use_saved_matrices)+'):')
         if os.path.isdir(self.__config.data_train_matrices) and os.listdir(os.path.join(self.__config.data_train_matrices, 'source_input'))!=[] and use_saved_matrices and not self.__config.train_rebuild_vocabulary_file:
             print('\tUsing previously saved train matrices. Returning no sentences.')
             return []
@@ -155,7 +157,7 @@ class DataProcessor(object):
         return horizontal_pad
 
     def __sentence_dicts_to_sentence_matrices(self, sentence_dicts):
-        print('def __sentence_dicts_to_sentence_matrices(self, sentence_dicts):')
+        #print('def __sentence_dicts_to_sentence_matrices(self, sentence_dicts):')
 
         if os.path.isdir(self.__config.data_train_matrices) and os.listdir(os.path.join(self.__config.data_train_matrices, 'source_input'))!=[] and len(sentence_dicts) == 0:
             print('\tLoading saved sentence matrices from:',self.__config.data_train_matrices)
@@ -240,7 +242,7 @@ class DataProcessor(object):
             print('\t#{longest target input list}:', self.__stat['longest_target_input_list'])
 
     def get_example_matrices(self, sentence_dicts):
-        print('def get_example_matrices(self, sentence_dicts):')
+        #print('def get_example_matrices(self, sentence_dicts):')
 
         if self.__sentence_source_input_examples_matrices == []:
             self.__sentence_dicts_to_sentence_matrices(sentence_dicts)
@@ -268,10 +270,10 @@ class DataProcessor(object):
             raise ValueError('SUM len of train, validation, test sentence example matrices != len of sentence_example_matrices_zipped')
 
         if self.__config.train_shuffle_sentences:
-            print('\tShuffling train sentences...')
+            print(Colors.LIGHTBLUE + '\tShuffling train sentences...')
             shuffle(train_sentence_example_matrices_zipped)
         else:
-            print('\tUsing sentences in original order.')
+            print(Colors.LIGHTBLUE + '\tUsing sentences in original order.')
 
         # with open('toy_train_source_sequences.txt','w',encoding='utf8') as f:
         #     for si, ti, to in train_sentence_example_matrices_zipped:

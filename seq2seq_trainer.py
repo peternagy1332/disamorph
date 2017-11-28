@@ -1,5 +1,5 @@
 import os
-from collections import namedtuple
+from utils import Colors
 from tensorflow.contrib.tensorboard.plugins import projector
 import tensorflow as tf
 import numpy as np
@@ -226,15 +226,15 @@ class Seq2SeqTrainer(object):
             train_summary_writer = tf.summary.FileWriter(os.path.join(self.__config.model_directory, 'train_checkpoints'), graph=self.__train_model.graph)
 
             for epoch_id in range(self.__config.train_epochs):
-                print()
+                print(Colors.YELLOW + '\t======> Running epoch ', str(epoch_id) + '/' + str(self.__config.train_epochs))
+
                 train_dataset, validation_dataset, _ = data_processor.get_example_matrices(sentence_dicts)
                 self.__utils.print_elapsed_time()
 
                 # total_batches = int(source_input_examples.shape[0] / self.__config.train_data_batch_size)
                 total_train_batches = train_dataset.source_input_examples.shape[0] // self.__config.data_batch_size
 
-                print('\tRunning epoch ', str(epoch_id) + '/' + str(self.__config.train_epochs))
-                print('\t#{total train batches}:', total_train_batches)
+                print(Colors.CYAN + '\t#{total train batches}:', total_train_batches)
 
                 losses = []
                 accuracies = []
@@ -277,18 +277,6 @@ class Seq2SeqTrainer(object):
                         self.__train_model.placeholders.decoder_outputs: target_output_batch
                     })
 
-                    # target_sequence_lengths = np.count_nonzero(target_output_batch, axis=1)
-                    #
-                    # avg_accs = []
-                    # for rowid, target_sequence_length in enumerate(target_sequence_lengths.tolist()):
-                    #     output_sequence = r_output_sequences[rowid][:target_sequence_length]
-                    #     target_output_sequence = target_output_batch[rowid][:target_sequence_length]
-                    #     print('%-60s| %s' % ("".join(self.__analyses_processor.lookup_ids_to_features(target_output_sequence)).replace("<PAD>", ""),
-                    #                        "".join(self.__analyses_processor.lookup_ids_to_features(output_sequence)).replace("<PAD>", "")))
-                    #     avg_accs.append(np.mean(np.equal(output_sequence, target_output_sequence)))
-                    #
-                    # print('Accuracy:', sum(avg_accs) * 100 / len(avg_accs),'\n')
-
                     accuracies.append(r_accuracy)
                     losses.append(r_loss)
 
@@ -299,25 +287,43 @@ class Seq2SeqTrainer(object):
                     if train_batch_id % self.__config.train_add_summary_modulo == 0:
                         train_summary_writer.add_summary(r_merged_summary_op, (r_global_step-1))
 
+                    if self.__config.train_visualization:
+                        print(Colors.ORANGE + '\n\t===> Training visualization')
+                        target_sequence_lengths = np.count_nonzero(target_output_batch, axis=1)
+                        # avg_accs = []
+                        for rowid, target_sequence_length in enumerate(target_sequence_lengths.tolist()):
+                            output_sequence = r_output_sequences[rowid][:target_sequence_length]
+                            target_output_sequence = target_output_batch[rowid][:target_sequence_length]
+                            colored_output = ""
+                            colored_length = min(len(target_output_sequence), len(output_sequence))
+                            for i in range(colored_length):
+                                looked_up = self.__analyses_processor.inverse_vocabulary.get(output_sequence[i], self.__analyses_processor.inverse_vocabulary[self.__config.marker_unknown])
+                                if output_sequence[i] == target_output_sequence[i]:
+                                    colored_output += Colors.LIGHTGREEN + looked_up + Colors.ENDC
+                                else:
+                                    colored_output += Colors.LIGHTRED + looked_up + Colors.ENDC
+
+                            print((Colors.PINK + '\t\t%-60s ' + Colors.ORANGE + '| %s') % ("".join(self.__analyses_processor.lookup_ids_to_features(target_output_sequence)), colored_output))
+                            #     avg_accs.append(np.mean(np.equal(output_sequence, target_output_sequence)))
+                            # print('Accuracy:', sum(avg_accs) * 100 / len(avg_accs),'\n')
+
                     batch_ptr += self.__config.data_batch_size
 
                 avg_loss = sum(losses) / len(losses)
                 avg_accuracy = sum(accuracies) / len(accuracies)
 
-                print('\n\tLosses     - min: %-12g max: %-12g avg: %-12g' % (min(losses), max(losses), avg_loss))
-                print('\tAccuracies - min: %-12g max: %-12g avg: %-12g\n' % (min(accuracies), max(accuracies), avg_accuracy))
+                print(Colors.LIGHTGREY + '\n\tLosses     - min: %-12g max: %-12g avg: %-12g' % (min(losses), max(losses), avg_loss))
+                print(Colors.LIGHTGREY + '\tAccuracies - min: %-12g max: %-12g avg: %-12g\n' % (min(accuracies), max(accuracies), avg_accuracy))
 
                 self.__utils.print_elapsed_time()
+                print(Colors.LIGHTGREEN + '\t<====== Running epoch: done.\n\n')
 
                 if (epoch_id+1) % self.__config.train_validation_modulo == 0:
                     print('\n\tSaving current train model...')
                     train_saver.save(self.__train_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name), r_global_step)
-                    train_saver.save(self.__train_session, os.path.join(self.__config.model_directory, 'train_checkpoints'))
                     self.__validate_model(validation_dataset, train_saver, r_global_step, total_train_batches)
 
                     self.__utils.print_elapsed_time()
-
-                print('\n','-'*50)
 
     def train(self, data_processor, sentence_dicts):
         print('def train(self, dataset):')

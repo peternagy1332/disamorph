@@ -231,8 +231,8 @@ class AnalysesProcessor(object):
 
         return extra_infos
 
-    def lookup_features_to_ids(self, morphemes_and_tags_list):
-        return [self.vocabulary.get(morpheme_or_tag, self.__config.marker_unknown) for morpheme_or_tag in morphemes_and_tags_list]
+    def lookup_features_to_ids(self, feature_list):
+        return [self.vocabulary.get(feature, self.__config.marker_unknown) for feature in feature_list]
 
     def lookup_ids_to_features(self, ids_list):
         return [self.inverse_vocabulary.get(id, self.inverse_vocabulary[self.__config.marker_unknown]) for id in ids_list]

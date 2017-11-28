@@ -4,6 +4,23 @@ import sys
 import time
 import os
 
+
+class Colors(object):
+    LIGHTBLUE = '\033[94m'
+    LIGHTGREEN = '\033[92m'
+    LIGHTRED = '\033[91m'
+    LIGHTGREY = '\033[37m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[93m'
+    ORANGE = '\033[33m'
+    CYAN = '\033[36m'
+    PINK = '\033[95m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    HEADER = '\033[95m'
+    ENDC = '\033[0m'
+
+
 class Logger(object):
     def __init__(self, model_directory, prefix):
         self.terminal = sys.stdout
@@ -25,6 +42,7 @@ class Logger(object):
         #self.run_log_file.close()
         pass
 
+
 class Utils(object):
     def __init__(self, model_configuration):
         self.__config = model_configuration
@@ -37,7 +55,7 @@ class Utils(object):
         percents = round(100.0 * count / float(total), 1)
         bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
-        sys.stdout.write('\t[%s] %s%s | %s\r' % (bar, percents, '%', suffix))
+        sys.stdout.write(('\t' + Colors.ORANGE + '[' + Colors.LIGHTBLUE + '%s' + Colors.ORANGE + ']' + Colors.LIGHTGREEN + '%s%s ' + Colors.LIGHTBLUE + '|' + Colors.CYAN + ' %s' + Colors.ENDC + '\r') % (bar, percents, '%', suffix))
         sys.stdout.flush()
 
     def redirect_stdout(self, prefix):
@@ -68,13 +86,13 @@ class Utils(object):
 
         diff = stop_time - self.start_time
 
-        print("\tElapsed time total:", self.__timediff_to_string(diff), end='; ')
+        print(Colors.LIGHTBLUE + "\tElapsed time total:", self.__timediff_to_string(diff), end='; ')
 
         if self.last_checkpoint_time is not None:
             diff = stop_time - self.last_checkpoint_time
             print("from last checkpoint:", self.__timediff_to_string(diff))
-        else:
-            print()
+
+        print(Colors.ENDC, end='')
 
         self.last_checkpoint_time = stop_time
 
