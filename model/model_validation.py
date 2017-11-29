@@ -17,9 +17,21 @@ class BuildValidationModel(object):
     def create_model(self):
         self.__train_model = self.__build_train_model.create_model(self.__graph)
 
-        projector_config, merged_summary, loss, accuracy, a_global_step, loss_sum, accuracy_sum = self.__create_validation_summary_variables()
+        projector_config, merged_summary, loss, accuracy, a_global_step, loss_sum, accuracy_sum, run_options, run_metadata = self.__create_validation_summary_variables()
 
-        Model = namedtuple('Model', ['placeholders', 'projector_config', 'merged_summary', 'loss', 'accuracy', 'graph', 'a_global_step', 'loss_sum', 'accuracy_sum'])
+        Model = namedtuple('Model', [
+            'placeholders',
+            'projector_config',
+            'merged_summary',
+            'loss',
+            'accuracy',
+            'graph',
+            'a_global_step',
+            'loss_sum',
+            'accuracy_sum',
+            'run_options',
+            'run_metadata'
+        ])
 
         return Model(
             placeholders=self.__train_model.placeholders,
@@ -30,7 +42,9 @@ class BuildValidationModel(object):
             graph=self.__graph,
             a_global_step=a_global_step,
             loss_sum=loss_sum,
-            accuracy_sum=accuracy_sum
+            accuracy_sum=accuracy_sum,
+            run_options=run_options,
+            run_metadata=run_metadata
         )
 
     def __create_validation_summary_variables(self):
@@ -89,5 +103,7 @@ class BuildValidationModel(object):
 
                 #global_step_inc_op = tf.add(a_global_step, tf.add(a_global_step,tf.constant(1.0, dtype=tf.float32)))
 
+                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                run_metadata = tf.RunMetadata()
 
-                return projector_config, merged_summary, loss, accuracy, a_global_step, loss_sum, accuracy_sum
+                return projector_config, merged_summary, loss, accuracy, a_global_step, loss_sum, accuracy_sum, run_options, run_metadata

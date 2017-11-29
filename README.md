@@ -40,3 +40,8 @@ cat * | grep -e '^.' | cut -f1 | sort | uniq | hfst-lookup --pipe-mode=input --c
 ```
 cat * | grep -e '^.' | cut -f1 | hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ../../../../programs/emMorph/hfst/hu.hfstol | grep -e '.' | wc -l
 ```
+
+## Training in the cloud
+``
+floyd run --gpu --env tensorflow-1.3 --data peter.nagy1332/datasets/data/2:data 'ln -s /data /code/data && python main_train.py -dcfg default_configs/floydhub_morpheme_momentum_lstm.yaml -m /output'
+``

@@ -101,8 +101,8 @@ class DataProcessor(object):
 
         self.__analyses_processor.write_vocabulary_file()
 
-        print('\t#{total sentences}:', len(sentence_dicts))
-        print('\t#{read rows}:', read_rows)
+        print(Colors.CYAN + '\t#{total sentences}:', len(sentence_dicts))
+        print(Colors.CYAN + '\t#{read rows}:', read_rows)
 
         return sentence_dicts
 
@@ -119,9 +119,9 @@ class DataProcessor(object):
         test_sentence_dicts = sentence_dicts[int(len(sentence_dicts) * (self.__config.data_train_ratio + self.__config.data_validation_ratio)):]
 
 
-        print('\t#{train sentences}:', len(train_sentence_dicts))
-        print('\t#{validation sentences}:', len(validation_sentence_dicts))
-        print('\t#{test sentences}:', len(test_sentence_dicts))
+        print(Colors.CYAN + '\t#{train sentences}:', len(train_sentence_dicts))
+        print(Colors.CYAN + '\t#{validation sentences}:', len(validation_sentence_dicts))
+        print(Colors.CYAN + '\t#{test sentences}:', len(test_sentence_dicts))
 
         if len(train_sentence_dicts) + len(validation_sentence_dicts) + len(test_sentence_dicts) != len(sentence_dicts):
             raise ValueError('SUM len of train, validation, test sentences != len of sentences')
@@ -160,7 +160,7 @@ class DataProcessor(object):
         #print('def __sentence_dicts_to_sentence_matrices(self, sentence_dicts):')
 
         if os.path.isdir(self.__config.data_train_matrices) and os.listdir(os.path.join(self.__config.data_train_matrices, 'source_input'))!=[] and len(sentence_dicts) == 0:
-            print('\tLoading saved sentence matrices from:',self.__config.data_train_matrices)
+            print(Colors.PINK + '\tLoading saved sentence matrices from:',self.__config.data_train_matrices)
             for file in sorted(glob.glob(os.path.join(self.__config.data_train_matrices, 'source_input', 'sentence_source_input_examples_*.npy'))):
                 sentence_source_input_examples_matrix = np.load(file)
 
@@ -172,7 +172,7 @@ class DataProcessor(object):
 
                 if self.__config.data_sentences_to_read_num is not None and len(self.__sentence_source_input_examples_matrices)>=self.__config.data_sentences_to_read_num:
                     break
-            print('\t\tLOADED: self.__sentence_source_input_examples_matrices')
+            print(Colors.PINK + '\t\tLOADED: self.__sentence_source_input_examples_matrices')
 
             for file in sorted(glob.glob(os.path.join(self.__config.data_train_matrices, 'target_input', 'sentence_target_input_examples_*.npy'))):
                 sentence_target_input_examples_matrix = np.load(file)
@@ -185,7 +185,7 @@ class DataProcessor(object):
 
                 if self.__config.data_sentences_to_read_num is not None and len(self.__sentence_target_input_examples_matrices)>=self.__config.data_sentences_to_read_num:
                     break
-            print('\t\tLOADED: self.__sentence_target_input_examples_matrices')
+            print(Colors.PINK + '\t\tLOADED: self.__sentence_target_input_examples_matrices')
 
             for file in sorted(glob.glob(os.path.join(self.__config.data_train_matrices, 'target_output', 'sentence_target_output_examples_*.npy'))):
                 sentence_target_output_examples_matrix = np.load(file)
@@ -199,10 +199,11 @@ class DataProcessor(object):
 
                 if self.__config.data_sentences_to_read_num is not None and len(self.__sentence_target_output_examples_matrices)>=self.__config.data_sentences_to_read_num:
                     break
-            print('\t\tLOADED: self.__sentence_target_output_examples_matrices')
+            print(Colors.PINK + '\t\tLOADED: self.__sentence_target_output_examples_matrices')
 
         else:
-            print('\tGenerating and saving sentence matrices to empty directory: ',self.__config.data_train_matrices)
+            print(Colors.LIGHTRED + '\tCould not load train matrices for filesystem => Starting generation.')
+            #print('\tGenerating and saving sentence matrices to empty directory: ',self.__config.data_train_matrices)
             sentence_id = 0
             for sentence_dict in sentence_dicts:
                 sentence_source_input_examples, sentence_target_input_examples, sentence_target_output_examples = self.sentence_dict_to_examples(sentence_dict)
@@ -227,9 +228,11 @@ class DataProcessor(object):
 
                 # TODO: Check if max_*_sequence_length is too low (matrix contains list)
 
-                np.save(os.path.join(self.__config.data_train_matrices, 'source_input', 'sentence_source_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_source_input_examples_matrix)
-                np.save(os.path.join(self.__config.data_train_matrices, 'target_input', 'sentence_target_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_input_examples_matrix)
-                np.save(os.path.join(self.__config.data_train_matrices, 'target_output', 'sentence_target_output_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_output_examples_matrix)
+                if self.__config.data_save_train_matrices:
+                    print(Colors.LIGHTRED + '\tSaving train matrices to: ' + self.__config.data_train_matrices)
+                    np.save(os.path.join(self.__config.data_train_matrices, 'source_input', 'sentence_source_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_source_input_examples_matrix)
+                    np.save(os.path.join(self.__config.data_train_matrices, 'target_input', 'sentence_target_input_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_input_examples_matrix)
+                    np.save(os.path.join(self.__config.data_train_matrices, 'target_output', 'sentence_target_output_examples_'+str(sentence_id).zfill(10)+'.npy'), sentence_target_output_examples_matrix)
 
                 sentence_id += 1
 
@@ -238,8 +241,8 @@ class DataProcessor(object):
                 self.__sentence_target_output_examples_matrices.append(sentence_target_output_examples_matrix)
 
         if self.__stat['longest_source_input_list'] is not None:
-            print('\t#{longest source input list}:', self.__stat['longest_source_input_list'])
-            print('\t#{longest target input list}:', self.__stat['longest_target_input_list'])
+            print(Colors.CYAN + '\t#{longest source input list}:', self.__stat['longest_source_input_list'])
+            print(Colors.CYAN + '\t#{longest target input list}:', self.__stat['longest_target_input_list'])
 
     def get_example_matrices(self, sentence_dicts):
         #print('def get_example_matrices(self, sentence_dicts):')

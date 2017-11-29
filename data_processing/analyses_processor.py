@@ -5,6 +5,8 @@ import os
 
 import sys
 
+from utils import Colors
+
 
 class AnalysesProcessor(object):
     def __init__(self, model_configuration):
@@ -193,14 +195,14 @@ class AnalysesProcessor(object):
             ordered_feature_list = list(map(lambda x: x[1], sorted(self.inverse_vocabulary.items(), key=operator.itemgetter(0))))
             unique_ordered_feature_list = sorted(set(ordered_feature_list), key=ordered_feature_list.index)
 
-            with open(self.__config.data_vocabulary_file, 'w', encoding='utf8') as vocabulary_file:
+            with open(self.__config.data_vocabulary_file, 'w+', encoding='utf8') as vocabulary_file:
                 vocabulary_file.writelines(map(lambda feature: feature+os.linesep, unique_ordered_feature_list))
-            print('\tVocabulary file flushed:',self.__config.data_vocabulary_file)
+            print(Colors.YELLOW + '\tVocabulary file flushed:',self.__config.data_vocabulary_file)
 
-            print('\tPlease restart the application.')
+            print(Colors.LIGHTRED + '\tPlease restart the application.')
             sys.exit()
         else:
-            print('\tUsing existing vocabulary file:',self.__config.data_vocabulary_file)
+            print(Colors.YELLOW + '\tUsing existing vocabulary file:',self.__config.data_vocabulary_file)
 
     def get_extra_info_vector(self, feature_list_analysis):
         """Input: char:[a b c TAG1 d e TAG2 ...] or morph:[abc TAG1 de TAG2 ...]

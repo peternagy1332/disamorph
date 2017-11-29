@@ -73,21 +73,17 @@ class Seq2SeqTrainer(object):
                 for dim in shape:
                     variable_parameters *= dim.value
                 total_parameters += variable_parameters
-            print('\t#{trainable parameters}:', total_parameters)
+            print(Colors.CYAN + '\t#{trainable parameters}:', total_parameters)
 
             output_sequences = self.__train_model.output_sequences * tf.cast(target_weights, dtype=tf.int32)
 
             # Accuracy
             correct_elements = tf.equal(labels, self.__train_model.output_sequences * tf.cast(target_weights, dtype=tf.int32))
-            #accuracy = tf.reduce_mean(tf.cast(correct_elements, tf.float32))
             accuracy = tf.multiply(tf.reduce_mean(tf.cast(correct_elements, tf.float32)), tf.constant(100.0, dtype=tf.float32))
 
             # Averaging
             loss_sum = tf.Variable(0.0, trainable=False, dtype=tf.float32)
             accuracy_sum = tf.Variable(0.0, trainable=False, dtype=tf.float32)
-
-            #loss_sum2 = tf.add(loss_sum, loss)
-            #accuracy_sum2 = tf.add(accuracy_sum, accuracy)
 
             avg_loss = tf.divide(loss_sum, tf.cast(global_step, tf.float32))
             avg_accuracy = tf.divide(accuracy_sum ,tf.cast(global_step, tf.float32))
@@ -107,7 +103,10 @@ class Seq2SeqTrainer(object):
             accuracy_inc_op = tf.assign_add(accuracy_sum, accuracy)
             stat_ops = tf.group(loss_inc_op, accuracy_inc_op)
 
-            return loss, learning_rate, global_step, accuracy, update_step, merged_summary_op, stat_ops, output_sequences
+            run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            run_metadata = tf.RunMetadata()
+
+            return loss, learning_rate, global_step, accuracy, update_step, merged_summary_op, stat_ops, output_sequences, run_options, run_metadata
 
     def __validate_model(self, validation_dataset, train_saver, r_global_step, total_train_batches):
         validation_losses = []
@@ -154,7 +153,10 @@ class Seq2SeqTrainer(object):
                         self.__validation_model.a_global_step: self.__validation_global_step,
                         self.__validation_model.loss_sum: self.__validation_loss_sum,
                         self.__validation_model.accuracy_sum: self.__validation_accuracy_sum
-                    })
+                    }#,
+                    #options=self.__validation_model.run_options,
+                    #run_metadata=self.__validation_model.run_metadata
+                )
 
                 self.__validation_global_step += 1.0
                 self.__validation_loss_sum+=r_val_loss
@@ -173,8 +175,10 @@ class Seq2SeqTrainer(object):
 
                 if validation_batch_id == 0:
                     validation_summary_writer.add_summary(r_val_merged_summary, start_step)
+                    #validation_summary_writer.add_run_metadata(self.__validation_model.run_metadata, 'step%d' % (r_global_step - 1))
 
                 #if (validation_batch_id+1) % self.__config.train_validation_add_summary_modulo == 0:
+
                 validation_summary_writer.add_summary(r_val_merged_summary, current_step)
 
                 validation_batch_ptr += self.__config.data_batch_size
@@ -202,7 +206,7 @@ class Seq2SeqTrainer(object):
 
     def __run_epochs(self, data_processor, sentence_dicts):
         with self.__train_model.graph.as_default():
-            loss, learning_rate, global_step, accuracy, update_step, merged_summary_op, stat_ops, output_sequences = self.__create_train_variables()
+            loss, learning_rate, global_step, accuracy, update_step, merged_summary_op, stat_ops, output_sequences, run_options, run_metadata = self.__create_train_variables()
 
             train_saver = tf.train.Saver()
 
@@ -220,7 +224,7 @@ class Seq2SeqTrainer(object):
                 print('\tRESTORING FROM:',latest_checkpoint)
                 train_saver.restore(self.__train_session, latest_checkpoint)
             else:
-                print('\tTraining new model...')
+                print(Colors.GREEN + '\tTraining new model...')
                 self.__train_session.run(tf.global_variables_initializer())
 
             train_summary_writer = tf.summary.FileWriter(os.path.join(self.__config.model_directory, 'train_checkpoints'), graph=self.__train_model.graph)
@@ -233,6 +237,8 @@ class Seq2SeqTrainer(object):
 
                 # total_batches = int(source_input_examples.shape[0] / self.__config.train_data_batch_size)
                 total_train_batches = train_dataset.source_input_examples.shape[0] // self.__config.data_batch_size
+
+                self.__validate_model(validation_dataset, train_saver, 400060, total_train_batches)
 
                 print(Colors.CYAN + '\t#{total train batches}:', total_train_batches)
 
@@ -276,6 +282,8 @@ class Seq2SeqTrainer(object):
                         self.__train_model.placeholders.decoder_inputs: target_input_batch,
                         self.__train_model.placeholders.decoder_outputs: target_output_batch
                     })
+                    #options=run_options,
+                    #run_metadata=run_metadata)
 
                     accuracies.append(r_accuracy)
                     losses.append(r_loss)
@@ -286,6 +294,7 @@ class Seq2SeqTrainer(object):
                     Utils.update_progress(train_batch_id + 1, total_train_batches,"AVGACC:%-5.2f LR:%-8f GS:%-7d AVGLOSS:%g" % (avgacc, r_learning_rate, r_global_step, avgloss))
                     if train_batch_id % self.__config.train_add_summary_modulo == 0:
                         train_summary_writer.add_summary(r_merged_summary_op, (r_global_step-1))
+                        #train_summary_writer.add_run_metadata(run_metadata, 'step%d' % (r_global_step-1))
 
                     if self.__config.train_visualization:
                         print(Colors.ORANGE + '\n\t===> Training visualization')

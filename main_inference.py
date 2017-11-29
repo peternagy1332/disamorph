@@ -8,7 +8,7 @@ from utils import Utils
 
 def main():
     parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-cfg', '--default-config', default=os.path.join('default_configs', 'character.yaml'))
+    parser.add_argument('-cfg', '--default-config', default=None)
     parser.add_argument('-m', '--model-directory', required=True)
 
     model_configuration = ModelConfiguration(parser)

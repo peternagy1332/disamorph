@@ -5,7 +5,7 @@ import operator
 import time
 import yaml
 from random import seed
-from utils import Utils
+from utils import Utils, Colors
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -20,7 +20,7 @@ class ModelConfiguration(object):
 
                  'data_random_seed', 'data_example_resolution', 'data_vocabulary_file',
                  'data_train_ratio', 'data_validation_ratio', 'data_sentences_to_read_num',
-                 'data_train_matrices', 'data_train_dataset', 'data_batch_size',
+                 'data_train_matrices', 'data_train_dataset', 'data_batch_size', 'data_save_train_matrices',
 
                  'network_max_source_sequence_length', 'network_max_target_sequence_length',
                  'network_dropout_keep_probability', 'network_activation',
@@ -43,6 +43,7 @@ class ModelConfiguration(object):
         args = parser.parse_args()
 
         # Overridable optional variables
+        self.data_save_train_matrices = True
         self.train_loss_optimizer_kwargs = {}
         self.train_visualization = False
         self.data_sentences_to_read_num = None
@@ -51,10 +52,7 @@ class ModelConfiguration(object):
         base_path = os.path.dirname(__file__)
 
         # If it is a new model
-        if args.model_directory is None:
-            if args.default_config is None:
-                raise ValueError('You must provide the default config path a train a new model.')
-
+        if args.default_config is not None:
             # Loading default config file
             with open(args.default_config, 'r', encoding='utf8') as default_config_file:
                 default_config = yaml.safe_load(default_config_file)
@@ -67,7 +65,10 @@ class ModelConfiguration(object):
                            default_config['train']['loss_optimizer'][:-9]+'.'+\
                            default_config['data']['example_resolution'][:4]
 
-            self.model_directory = os.path.join(base_path, 'saved_models', new_dir_name)
+            if args.model_directory is None:
+                self.model_directory = os.path.join(base_path, 'saved_models', new_dir_name)
+            else:
+                self.model_directory = os.path.join(args.model_directory, new_dir_name)
 
             os.makedirs(self.model_directory)
 
@@ -126,10 +127,10 @@ class ModelConfiguration(object):
             seed(self.data_random_seed)
 
     def printConfig(self):
-        print('%90s' % ('Global configurations'))
+        print(Colors.HEADER + '%90s' % ('Model configurations'))
         print("%-50s\t%s" % ('Key', 'Value'))
         print('-'*100)
         for k, v in sorted(Utils.fullvars(self).items(), key=operator.itemgetter(0)):
-            print("%-50s\t%s" % (k, v))
-        print('-' * 100)
+            print(Colors.PINK + "%-50s\t%s" % (k, v))
+        print('=' * 100)
 

@@ -63,7 +63,7 @@ def estimate_accuracies_on_dataset(model_configuration, disambiguator, dataset):
 
 def main():
     parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-dcfg', '--default-config', default=os.path.join('default_configs', 'character.yaml'))
+    parser.add_argument('-dcfg', '--default-config', default=None)
     parser.add_argument('-m', '--model-directory', required=True)
     parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
 
