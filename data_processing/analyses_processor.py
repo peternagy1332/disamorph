@@ -15,13 +15,12 @@ class AnalysesProcessor(object):
         self.vocabulary = dict()
         self.inverse_vocabulary = dict()
 
-        self.__read_and_build_vocabulary()
+        self.__read_or_build_vocabulary()
         self.__hfst_cache_vectorized = dict()
         self.__hfst_cache_feature_list_analyses = dict()
         self.__hfst_cache_analyses = dict()
 
-    def __read_and_build_vocabulary(self):
-        print('def __read_and_build_vocabulary(self):')
+    def __read_or_build_vocabulary(self):
         features = []
         if os.path.isfile(self.__config.data_vocabulary_file):
             with open(self.__config.data_vocabulary_file, 'r', encoding='utf-8') as f: features.extend(f.read().splitlines())

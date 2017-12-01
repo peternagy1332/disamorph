@@ -42,15 +42,12 @@ class Disambiguator(object):
             inference_saver = tf.train.Saver()
 
             if self.__config.use_train_model:
-                print('\tUsing latest train model.')
                 #inference_saver.restore(self.__inference_session, os.path.join(self.__config.model_directory, 'train_checkpoints', self.__config.model_name))
                 latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'train_checkpoints'))
             else:
-                print('\tUsing latest validation model.')
                 #inference_saver.restore(self.__inference_session, os.path.join(self.__config.model_directory, 'validation_checkpoints', self.__config.model_name))
                 latest_checkpoint = tf.train.latest_checkpoint(os.path.join(self.__config.model_directory, 'validation_checkpoints'))
 
-            print('\tRESTORED FROM:', latest_checkpoint)
             inference_saver.restore(self.__inference_session, latest_checkpoint)
 
     def __collect_analyses_for_source_words_in_window(self, sentence_words, word_in_sentence_id, in_vector_format=True):
@@ -113,6 +110,11 @@ class Disambiguator(object):
             word_in_sentence_id += 1
 
     def feed_into_network(self, combinations_matrix):
+        print(combinations_matrix)
+        print(combinations_matrix.shape)
+        for i in combinations_matrix:
+            print(" ".join(self.analyses_processor.lookup_ids_to_features(i.tolist()[0])).replace('<PAD>',''))
+
         scores, output_sequences = self.__inference_session.run(
             [self.__inference_model.logits, self.__inference_model.output_sequences],
             feed_dict={
@@ -198,7 +200,7 @@ class Disambiguator(object):
         corpus_temp_file.close()
 
         hfst_pipe = subprocess.Popen(
-            "quntoken " + corpus_temp_file.name,
+            'quntoken ' + corpus_temp_file.name,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -211,7 +213,7 @@ class Disambiguator(object):
         if len(err)>0:
             print(err.decode())
 
-        root = ET.fromstring("<root>" + raw_decoded_output + "</root>")
+        root = ET.fromstring('<root>' + raw_decoded_output + '</root>')
 
         tokenized_sentences = []
         for sentence in root:
@@ -230,9 +232,11 @@ class Disambiguator(object):
         for tokenized_sentence in tokenized_sentences:
             flattened_corpus_words_with_SOS_before_sentences += [self.analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]] * (self.__config.network_window_length - 1) + tokenized_sentence
 
+        sentence_id = 0
         disambiguated_analyses_for_sentences = []
-        for disambiguated_analyses in self.disambiguated_analyses_by_sentence_generator(flattened_corpus_words_with_SOS_before_sentences):
-            disambiguated_analyses_for_sentences.append(disambiguated_analyses)
+        for disambiguated_analyses, _ in self.disambiguated_analyses_by_sentence_generator(flattened_corpus_words_with_SOS_before_sentences):
+            disambiguated_analyses_for_sentences.append(zip(tokenized_sentences[sentence_id], disambiguated_analyses))
+            sentence_id+=1
 
         return disambiguated_analyses_for_sentences
 
@@ -245,7 +249,6 @@ class Disambiguator(object):
                 empty_window = True # If the sentence was too large to fit in the inference input matrix
                 index_by_last_four_analyses = dict()
                 for combination, probability, output_sequence in window_combinations_probabilities_output_sequences:
-
                     if self.__correct_combinations is not None and combination in self.__correct_combinations:
                         probability = 10000.0
 
@@ -312,6 +315,7 @@ class Disambiguator(object):
             yield windows_combinations_probabilities_output_sequences, all_output_sequences
 
     def evaluate_model(self, sentence_dicts, printAnalyses = False):
+        print('def evaluate_model(self, sentence_dicts, printAnalyses = False):')
         disambiguation_accuracies = []
         print('\t#{sentences}: ', len(sentence_dicts))
         try:
