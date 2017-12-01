@@ -52,7 +52,7 @@ class ModelConfiguration(object):
         base_path = os.path.dirname(__file__)
 
         # If it is a new model
-        if args.default_config is not None:
+        if hasattr(args, 'default_config') and args.default_config is not None:
             # Loading default config file
             with open(args.default_config, 'r', encoding='utf8') as default_config_file:
                 default_config = yaml.safe_load(default_config_file)

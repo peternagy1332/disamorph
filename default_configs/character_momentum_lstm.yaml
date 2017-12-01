@@ -5,7 +5,7 @@ data:
   example_resolution: character
   train_ratio: 0.8
   validation_ratio: 0.1
-  batch_size: 256
+  batch_size: 128
 inference:
   transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
   decoder_type: greedy
@@ -13,7 +13,7 @@ inference:
 network:
   embedding_size: 8
   hidden_layer_cell_type: LSTM
-  hidden_layer_cells: 64
+  hidden_layer_cells: 32
   hidden_layer_count: 2
   max_gradient_norm: 5
   max_source_sequence_length: 109

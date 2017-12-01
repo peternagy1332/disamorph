@@ -95,7 +95,7 @@ class Seq2SeqTrainer(object):
             tf.summary.scalar('learning_rate', learning_rate)
             tf.summary.scalar('global_step', global_step)
 
-            tf.summary.histogram('logits',tf.nn.softmax(self.__train_model.logits))
+            #tf.summary.histogram('logits',tf.nn.softmax(self.__train_model.logits))
 
             # Merge all summary operations into a single one
             merged_summary_op = tf.summary.merge_all()
@@ -237,8 +237,6 @@ class Seq2SeqTrainer(object):
 
                 # total_batches = int(source_input_examples.shape[0] / self.__config.train_data_batch_size)
                 total_train_batches = train_dataset.source_input_examples.shape[0] // self.__config.data_batch_size
-
-                self.__validate_model(validation_dataset, train_saver, 400060, total_train_batches)
 
                 print(Colors.CYAN + '\t#{total train batches}:', total_train_batches)
 

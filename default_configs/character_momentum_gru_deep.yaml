@@ -13,8 +13,8 @@ inference:
 network:
   embedding_size: 8
   hidden_layer_cell_type: GRU
-  hidden_layer_cells: 32
-  hidden_layer_count: 2
+  hidden_layer_cells: 16
+  hidden_layer_count: 4
   max_gradient_norm: 5
   max_source_sequence_length: 109
   max_target_sequence_length: 61
@@ -28,15 +28,15 @@ train:
   loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
 #    - {learning_rate: 1.0,    until_global_step: 4096}
-#    - {learning_rate: 0.5,    until_global_step: 8192}
-#    - {learning_rate: 0.25,   until_global_step: 16384}
-    - {learning_rate: 0.125,  until_global_step: 16000}
-    - {learning_rate: 0.0625, until_global_step: 32000}
-    - {learning_rate: 0.03125, until_global_step: 64000}
-    - {learning_rate: 0.015625, until_global_step: 128000}
-    - {learning_rate: 0.0078125, until_global_step: 256000}
-    - {learning_rate: 0.00390625, until_global_step: 512000}
-    - {learning_rate: 0.001953125, until_global_step: 1024000}
+    - {learning_rate: 0.5,    until_global_step: 8192}
+    - {learning_rate: 0.25,   until_global_step: 16384}
+    - {learning_rate: 0.125,  until_global_step: 32768}
+    - {learning_rate: 0.0625, until_global_step: 65536}
+    - {learning_rate: 0.03125, until_global_step: 131072}
+    - {learning_rate: 0.015625, until_global_step: 262144}
+    - {learning_rate: 0.0078125, until_global_step: 524288}
+    - {learning_rate: 0.00390625, until_global_step: 1048576}
+    - {learning_rate: 0.001953125, until_global_step: 2097152}
   shuffle_sentences: true
   shuffle_examples_in_batches: false
   add_summary_modulo: 100

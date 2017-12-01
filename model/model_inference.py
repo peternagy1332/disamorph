@@ -51,11 +51,12 @@ class BuildInferenceModel(object):
         with tf.variable_scope('decoder'):
             decoder_rnn = self.__build_train_model.create_rnn()
 
+            projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), activation=tf.nn.softmax, use_bias=False)
+
             if self.__config.inference_decoder_type=='beam_search':
-                beam_width = 5
-                tiled_encoder_outputs = tf.contrib.seq2seq.tile_batch(encoder_outputs, multiplier=beam_width)
-                tiled_encoder_final_state = tf.contrib.seq2seq.tile_batch(encoder_state, multiplier=beam_width)
-                tiled_sequence_length = tf.contrib.seq2seq.tile_batch(tf.count_nonzero(placeholders.infer_inputs,axis=1), multiplier=beam_width)
+                tiled_encoder_outputs = tf.contrib.seq2seq.tile_batch(encoder_outputs, multiplier=self.__config.inference_beam_width)
+                tiled_encoder_final_state = tf.contrib.seq2seq.tile_batch(encoder_state, multiplier=self.__config.inference_beam_width)
+                tiled_sequence_length = tf.contrib.seq2seq.tile_batch(tf.count_nonzero(placeholders.infer_inputs,axis=1), multiplier=self.__config.inference_beam_width)
 
                 mechanism = tf.contrib.seq2seq.LuongAttention(
                     num_units=self.__config.network_hidden_layer_cells,
@@ -68,12 +69,11 @@ class BuildInferenceModel(object):
                 )
 
                 decoder_initial_state = attention_cell.zero_state(
-                    batch_size=self.__config.data_batch_size * beam_width,
-                    dtype=tf.float32)
+                    batch_size=self.__config.data_batch_size * self.__config.inference_beam_width,
+                    dtype=tf.float32
+                )
 
                 decoder_initial_state = decoder_initial_state.clone(cell_state=tiled_encoder_final_state)
-
-                projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), activation=tf.nn.softmax, use_bias=False)
 
                 # Define a beam-search decoder
                 decoder = tf.contrib.seq2seq.BeamSearchDecoder(
@@ -82,9 +82,10 @@ class BuildInferenceModel(object):
                     start_tokens=tf.fill([self.__config.data_batch_size], self.__config.marker_go),
                     end_token=self.__config.marker_end_of_sentence,
                     initial_state=decoder_initial_state,
-                    beam_width=beam_width,
+                    beam_width=self.__config.inference_beam_width,
                     output_layer=projection_layer,
-                    length_penalty_weight=0.0)
+                    length_penalty_weight=0.0
+                )
 
                 final_outputs, final_state, final_sequence_lengths = tf.contrib.seq2seq.dynamic_decode(
                     decoder, maximum_iterations=self.__config.network_max_target_sequence_length,
@@ -109,7 +110,8 @@ class BuildInferenceModel(object):
 
                 decoder_initial_state = attention_cell.zero_state(
                     batch_size=self.__config.data_batch_size,
-                    dtype=tf.float32)
+                    dtype=tf.float32
+                )
 
                 decoder_initial_state = decoder_initial_state.clone(cell_state=encoder_state)
 
@@ -118,8 +120,6 @@ class BuildInferenceModel(object):
                     tf.fill([self.__config.data_batch_size], self.__config.marker_go),
                     self.__config.marker_end_of_sentence
                 )
-
-                projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), activation=tf.nn.softmax, use_bias=False)
 
                 # Using a basic decoder
                 decoder = tf.contrib.seq2seq.BasicDecoder(

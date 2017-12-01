@@ -24,19 +24,19 @@ network:
 train:
   visualization: false
   epochs: 100000
-  loss_optimizer: MomentumOptimizer
-  loss_optimizer_kwargs: {momentum: 0.5}
+  loss_optimizer: AdamOptimizer
+#  loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
 #    - {learning_rate: 1.0,    until_global_step: 4096}
 #    - {learning_rate: 0.5,    until_global_step: 8192}
 #    - {learning_rate: 0.25,   until_global_step: 16384}
-    - {learning_rate: 0.125,  until_global_step: 16000}
-    - {learning_rate: 0.0625, until_global_step: 32000}
-    - {learning_rate: 0.03125, until_global_step: 64000}
-    - {learning_rate: 0.015625, until_global_step: 128000}
-    - {learning_rate: 0.0078125, until_global_step: 256000}
-    - {learning_rate: 0.00390625, until_global_step: 512000}
-    - {learning_rate: 0.001953125, until_global_step: 1024000}
+#    - {learning_rate: 0.125,  until_global_step: 32768}
+#    - {learning_rate: 0.0625, until_global_step: 65536}
+#    - {learning_rate: 0.03125, until_global_step: 8000}
+    - {learning_rate: 0.015625, until_global_step: 8000}
+    - {learning_rate: 0.0078125, until_global_step: 16000}
+    - {learning_rate: 0.00390625, until_global_step: 32000}
+    - {learning_rate: 0.001953125, until_global_step: 64000}
   shuffle_sentences: true
   shuffle_examples_in_batches: false
   add_summary_modulo: 100

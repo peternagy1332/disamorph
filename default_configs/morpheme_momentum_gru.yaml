@@ -24,12 +24,16 @@ network:
 train:
   visualization: false
   epochs: 100000
-  loss_optimizer: AdamOptimizer
-#  loss_optimizer_kwargs: {momentum: 0.5}
+  loss_optimizer: MomentumOptimizer
+  loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
-#    - {learning_rate: 0.0625, until_global_step: 65536}
-#    - {learning_rate: 0.03125, until_global_step: 131072}
- #   - {learning_rate: 0.015625, until_global_step: 262144}
+    - {learning_rate: 1.0, until_global_step: 4000}
+    - {learning_rate: 0.5, until_global_step: 8000}
+    - {learning_rate: 0.25, until_global_step: 16000}
+    - {learning_rate: 0.125, until_global_step: 32000}
+    - {learning_rate: 0.0625, until_global_step: 65536}
+    - {learning_rate: 0.03125, until_global_step: 131072}
+    - {learning_rate: 0.015625, until_global_step: 262144}
     - {learning_rate: 0.0078125, until_global_step: 8000}
     - {learning_rate: 0.00390625, until_global_step: 16000}
     - {learning_rate: 0.001953125, until_global_step: 32000}

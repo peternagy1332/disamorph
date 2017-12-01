@@ -10,7 +10,6 @@ from utils import Utils
 
 def main():
     parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-dcfg', '--default-config', default=os.path.join('default_configs', 'character.yaml'))
     parser.add_argument('-m', '--model-directory', required=True)
     parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
 
