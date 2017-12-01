@@ -110,11 +110,6 @@ class Disambiguator(object):
             word_in_sentence_id += 1
 
     def feed_into_network(self, combinations_matrix):
-        print(combinations_matrix)
-        print(combinations_matrix.shape)
-        for i in combinations_matrix:
-            print(" ".join(self.analyses_processor.lookup_ids_to_features(i.tolist()[0])).replace('<PAD>',''))
-
         scores, output_sequences = self.__inference_session.run(
             [self.__inference_model.logits, self.__inference_model.output_sequences],
             feed_dict={
