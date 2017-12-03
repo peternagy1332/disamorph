@@ -1,4 +1,3 @@
-
 # Created by https://www.gitignore.io/api/pycharm,pycharm+all,pycharm+iml
 
 ### PyCharm ###
@@ -83,7 +82,9 @@ modules.xml
 
 # End of https://www.gitignore.io/api/pycharm,pycharm+all,pycharm+iml
 
-data/szeged/*
-data/szeged-judit/*
+data/szeged-judit/*.new
 __pycache__
 *.csv
+
+*.log
+*.nano

@@ -1,0 +1,6 @@
+model_checkpoint_path: "saved_model.ckpt-1233920"
+all_model_checkpoint_paths: "saved_model.ckpt-1118240"
+all_model_checkpoint_paths: "../validation_checkpoints/saved_model.ckpt-1118240"
+all_model_checkpoint_paths: "saved_model.ckpt-1156800"
+all_model_checkpoint_paths: "saved_model.ckpt-1195360"
+all_model_checkpoint_paths: "saved_model.ckpt-1233920"

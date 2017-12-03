@@ -1,0 +1,61 @@
+data:
+  batch_size: 32
+  example_resolution: morpheme
+  random_seed: 448
+  train_dataset: data/szeged-judit/*
+  train_matrices: data/train_matrices
+  train_ratio: 0.8
+  validation_ratio: 0.1
+inference:
+  beam_width: 5
+  decoder_type: greedy
+  transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
+network:
+  activation: null
+  dropout_keep_probability: 0.8
+  embedding_size: 8
+  hidden_layer_cell_type: LSTM
+  hidden_layer_cells: 32
+  hidden_layer_count: 2
+  max_gradient_norm: 5
+  max_source_sequence_length: 73
+  max_target_sequence_length: 53
+  window_length: 5
+train:
+  add_summary_modulo: 100
+  epochs: 100000
+  loss_optimizer: MomentumOptimizer
+  loss_optimizer_kwargs:
+    momentum: 0.5
+  schedule:
+  - learning_rate: 1.0
+    until_global_step: 8192
+  - learning_rate: 0.5
+    until_global_step: 1600
+  - learning_rate: 0.25
+    until_global_step: 3200
+  - learning_rate: 0.125
+    until_global_step: 6400
+  - learning_rate: 0.0625
+    until_global_step: 12800
+  - learning_rate: 0.03125
+    until_global_step: 25600
+  - learning_rate: 0.015625
+    until_global_step: 51200
+  - learning_rate: 0.0078125
+    until_global_step: 102400
+  - learning_rate: 0.00390625
+    until_global_step: 204800
+  - learning_rate: 0.0015
+    until_global_step: 409600
+  - learning_rate: 0.00075
+    until_global_step: 809200
+  - learning_rate: 0.000375
+    until_global_step: 1600000
+  - learning_rate: 0.0001875
+    until_global_step: 3200000
+  shuffle_examples_in_batches: false
+  shuffle_sentences: true
+  validation_add_summary_modulo: 100
+  validation_modulo: 1
+  visualization: false

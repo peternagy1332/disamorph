@@ -1,14 +1,12 @@
 import argparse
-
-from __init__ import ModelConfiguration
-from disambiguator import Disambiguator
+from disamorph import ModelConfiguration
+from disamorph.disambiguator import Disambiguator
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-cfg', '--default-config', default=None)
-    parser.add_argument('-m', '--model-directory', required=True)
-    parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
+    parser = argparse.ArgumentParser(description='Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence neural networks')
+    parser.add_argument('-m', '--model-directory', required=True, help='Path to the model directory.')
+    parser.add_argument('-t', '--use-train-model', default=False, action='store_true', help='Whether to use the train insted of the validation model.')
 
     model_configuration = ModelConfiguration(parser)
 

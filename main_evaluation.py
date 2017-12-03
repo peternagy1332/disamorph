@@ -1,15 +1,14 @@
 import argparse
-from __init__ import ModelConfiguration
-from data_processing.analyses_processor import AnalysesProcessor
-from data_processing.data_processor import DataProcessor
-from disambiguator import Disambiguator
-from utils import Utils
+from disamorph import ModelConfiguration, Utils
+from disamorph.data_processing.analyses_processor import AnalysesProcessor
+from disamorph.data_processing.data_processor import DataProcessor
+from disamorph.disambiguator import Disambiguator
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-m', '--model-directory', required=True)
-    parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
+    parser = argparse.ArgumentParser(description='Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence neural networks')
+    parser.add_argument('-m', '--model-directory', required=True, help='Path to the model directory.')
+    parser.add_argument('-t', '--use-train-model', default=False, action='store_true', help='Whether to use the train instead of the validation model.')
 
     model_configuration = ModelConfiguration(parser)
     model_configuration.train_shuffle_examples_in_batches = False

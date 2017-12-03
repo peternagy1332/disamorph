@@ -1,4 +1,9 @@
-# Hungarian morphological disambiguation using sequence-to-sequence neural networks
+# Disamorph: A Hungarian morphological disambiguation using sequence-to-sequence neural networks
+
+## Usage
+```bash
+python main_inference.py -m saved_models/1129-141836.LSTMx2x32.Momentum.morp
+```
 
 ## Used shell commands during data preprocessing in Szeged corpus
 Could be useful for train replicating purposes.

@@ -1,0 +1,6 @@
+model_checkpoint_path: "/userhome/student/peterng/projects/hu-morph-disam/saved_models/1127-172219.LSTMx2x64.Momentum.char/train_checkpoints"
+all_model_checkpoint_paths: "/userhome/student/peterng/projects/hu-morph-disam/saved_models/1127-172219.LSTMx2x64.Momentum.char/train_checkpoints/saved_model.ckpt-308480"
+all_model_checkpoint_paths: "/userhome/student/peterng/projects/hu-morph-disam/saved_models/1127-172219.LSTMx2x64.Momentum.char/train_checkpoints/saved_model.ckpt-313300"
+all_model_checkpoint_paths: "/userhome/student/peterng/projects/hu-morph-disam/saved_models/1127-172219.LSTMx2x64.Momentum.char/validation_checkpoints/saved_model.ckpt-313300"
+all_model_checkpoint_paths: "/userhome/student/peterng/projects/hu-morph-disam/saved_models/1127-172219.LSTMx2x64.Momentum.char/train_checkpoints/saved_model.ckpt-318120"
+all_model_checkpoint_paths: "/userhome/student/peterng/projects/hu-morph-disam/saved_models/1127-172219.LSTMx2x64.Momentum.char/train_checkpoints"

@@ -1,17 +1,15 @@
 import argparse
-
-from __init__ import ModelConfiguration
-from data_processing.analyses_processor import AnalysesProcessor
-from data_processing.data_processor import DataProcessor
-from seq2seq_trainer import Seq2SeqTrainer
-from utils import Utils
+from disamorph import ModelConfiguration, Utils
+from disamorph.data_processing.analyses_processor import AnalysesProcessor
+from disamorph.data_processing.data_processor import DataProcessor
+from disamorph.seq2seq_trainer import Seq2SeqTrainer
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Hungarian morphological disambiguator')
-    parser.add_argument('-dcfg', '--default-config', default=None)
-    parser.add_argument('-m', '--model-directory', default=None)
-    parser.add_argument('-t', '--use-train-model', default=False, action='store_true')
+    parser = argparse.ArgumentParser(description='Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence neural networks.')
+    parser.add_argument('-dcfg', '--default-config', default=None, help='If provided, a new model will be trained with this config. Has priority over --model-directory.')
+    parser.add_argument('-m', '--model-directory', default=None, help='If provided, the training of an existing model will be continued. If --default-config is also present, the new model will be saved to this path.')
+    parser.add_argument('-t', '--use-train-model', default=False, action='store_true', help='On model continuation, for defining whether to continue the train insted of the validation model.')
 
     model_configuration = ModelConfiguration(parser)
     utils = Utils(model_configuration)
