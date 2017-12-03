@@ -11,11 +11,11 @@ inference:
   decoder_type: greedy
   beam_width: 5
 network:
-  embedding_size: 8
+  embedding_size: 16
   hidden_layer_cell_type: GRU
   hidden_layer_cells: 32
   hidden_layer_count: 2
-  max_gradient_norm: 5
+  max_gradient_norm: 10
   max_source_sequence_length: 109
   max_target_sequence_length: 61
   window_length: 5

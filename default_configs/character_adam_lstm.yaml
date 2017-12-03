@@ -15,12 +15,12 @@ network:
   hidden_layer_cell_type: LSTM
   hidden_layer_cells: 32
   hidden_layer_count: 2
-  max_gradient_norm: 5
+  max_gradient_norm: 10
   max_source_sequence_length: 109
   max_target_sequence_length: 61
   window_length: 5
   dropout_keep_probability: 0.8
-  activation: null
+  activation: leaky_relu
 train:
   visualization: false
   epochs: 100000

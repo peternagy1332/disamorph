@@ -7,8 +7,9 @@ def main():
     parser = argparse.ArgumentParser(description='Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence neural networks')
     parser.add_argument('-m', '--model-directory', required=True, help='Path to the model directory.')
     parser.add_argument('-t', '--use-train-model', default=False, action='store_true', help='Whether to use the train insted of the validation model.')
+    args = parser.parse_args()
 
-    model_configuration = ModelConfiguration(parser)
+    model_configuration = ModelConfiguration(args)
 
     disambiguator = Disambiguator(model_configuration)
 

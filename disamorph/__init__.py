@@ -39,9 +39,7 @@ class ModelConfiguration(object):
 
                  'data_label_metadata_file')
 
-    def __init__(self, parser):
-        args = parser.parse_args()
-
+    def __init__(self, args):
         # Overridable optional variables
         self.data_save_train_matrices = True
         self.train_loss_optimizer_kwargs = {}

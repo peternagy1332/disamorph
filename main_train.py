@@ -10,8 +10,9 @@ def main():
     parser.add_argument('-dcfg', '--default-config', default=None, help='If provided, a new model will be trained with this config. Has priority over --model-directory.')
     parser.add_argument('-m', '--model-directory', default=None, help='If provided, the training of an existing model will be continued. If --default-config is also present, the new model will be saved to this path.')
     parser.add_argument('-t', '--use-train-model', default=False, action='store_true', help='On model continuation, for defining whether to continue the train insted of the validation model.')
+    args = parser.parse_args()
 
-    model_configuration = ModelConfiguration(parser)
+    model_configuration = ModelConfiguration(args)
     utils = Utils(model_configuration)
     utils.start_stopwatch()
     utils.redirect_stdout('main-train')

@@ -11,16 +11,16 @@ inference:
   decoder_type: greedy
   beam_width: 5
 network:
-  embedding_size: 8
+  embedding_size: 16
   hidden_layer_cell_type: GRU
-  hidden_layer_cells: 16
-  hidden_layer_count: 4
+  hidden_layer_cells: 32
+  hidden_layer_count: 2
   max_gradient_norm: 5
   max_source_sequence_length: 109
   max_target_sequence_length: 61
   window_length: 5
   dropout_keep_probability: 0.8
-  activation: null
+  activation: leaky_relu
 train:
   visualization: false
   epochs: 100000

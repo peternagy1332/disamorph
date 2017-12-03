@@ -1,4 +1,4 @@
-# [![Build Status](https://travis-ci.org/peternagy1332/disamorph.svg?branch=master)](https://travis-ci.org/peternagy1332/disamorph) Disamorph
+# Disamorph [![Build Status](https://travis-ci.org/peternagy1332/disamorph.svg?branch=master)](https://travis-ci.org/peternagy1332/disamorph)
 ## A Hungarian morphological disambiguator using sequence-to-sequence neural networks
 
 ### Usage
