@@ -21,6 +21,7 @@ def main():
     for correct_analyses in disambiguator.disambiguate_tokenized_sentences(tokenized_sentences):
         for (token, (disambiguated_analysis, log_probability, network_output)) in correct_analyses:
             print('%s\t%s' % (token, disambiguated_analysis))
+        print()
 
 if __name__ == '__main__':
     main()

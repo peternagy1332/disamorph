@@ -90,14 +90,12 @@ class Disambiguator(object):
                 continue
 
             # Pipeline alike processing of current word
-
             window_combinations_vector = self.__collect_analyses_for_source_words_in_window(corpus_words, word_in_sentence_id)
             window_analyses = self.__collect_analyses_for_source_words_in_window(corpus_words, word_in_sentence_id, False)
 
             last_word = corpus_words[word_in_sentence_id+self.__config.network_window_length-1]
             window_combinations_vector[-1] = self.analyses_processor.get_all_extra_info_vectors_for_word(last_word)
 
-            # TODO: check truncation (window_combinations_vector[:self.__config.data_batch_size])
             combinations_in_window = list(itertools.product(*window_combinations_vector))
 
             vectorized_window_combinations = self.__data_processor.format_window_word_analyses(combinations_in_window)
@@ -243,7 +241,11 @@ class Disambiguator(object):
             for window_combinations_probabilities_output_sequences in windows_combinations_probabilities_output_sequences_in_sentence:
                 empty_window = True # If the sentence was too large to fit in the inference input matrix
                 index_by_last_four_analyses = dict()
+                print('\n----')
                 for combination, probability, output_sequence in window_combinations_probabilities_output_sequences:
+
+                    print(" ".join(list(combination)))
+
                     if self.__correct_combinations is not None and combination in self.__correct_combinations:
                         probability = 10000.0
 
@@ -253,6 +255,8 @@ class Disambiguator(object):
                         index_by_last_four_analyses[combination[1:]].append((combination, probability, output_sequence))
                     else:
                         index_by_last_four_analyses.setdefault(combination[1:], [(combination, probability, output_sequence)])
+
+
 
                 if not empty_window:
                     reduced_groups_by_max_probability = []
@@ -306,7 +310,6 @@ class Disambiguator(object):
             #         print(probability, combination)
             #
             # print('-----')
-
             yield windows_combinations_probabilities_output_sequences, all_output_sequences
 
     def evaluate_model(self, sentence_dicts, printAnalyses = False):

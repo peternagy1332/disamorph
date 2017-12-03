@@ -16,5 +16,10 @@ def lookup_features_to_ids(vocabulary, feature_list):
     return [vocabulary.get(feature, 4) for feature in feature_list]
 
 
-print(lookup_features_to_ids(char_vocabulary, ['p', 'á', 'l', 'y', 'a', 'b', 'é', 'r', '[/N]', 'e', 'm', '[Poss.1Sg]', 'e', 't']))
-print(lookup_features_to_ids(morpheme_vocabulary, ['pályabér', '[/N]', 'em', '[Poss.1Sg]', 'et']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['próbál','[/V]', 'd', '[Sbjv.Def.2Sg]']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['meg', '[/Cnj]']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['meg', '[/Prev]']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['még', '[/Adv]']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['egy', '[/Num]', 'szer', '[_Mlt-Iter/Adv]']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['egyszer', '[/Adv]']))
+print(lookup_features_to_ids(morpheme_vocabulary, ['.']))
