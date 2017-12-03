@@ -13,32 +13,30 @@ inference:
 network:
   embedding_size: 8
   hidden_layer_cell_type: GRU
-  hidden_layer_cells: 256
+  hidden_layer_cells: 32
   hidden_layer_count: 2
   max_gradient_norm: 5
   max_source_sequence_length: 73
   max_target_sequence_length: 53
   window_length: 5
   dropout_keep_probability: 0.8
-  activation: null
+  activation: leaky_relu
 train:
   visualization: false
   epochs: 100000
   loss_optimizer: MomentumOptimizer
   loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
-    - {learning_rate: 1.0, until_global_step: 4000}
-    - {learning_rate: 0.5, until_global_step: 8000}
-    - {learning_rate: 0.25, until_global_step: 16000}
-    - {learning_rate: 0.125, until_global_step: 32000}
-    - {learning_rate: 0.0625, until_global_step: 65536}
-    - {learning_rate: 0.03125, until_global_step: 131072}
-    - {learning_rate: 0.015625, until_global_step: 262144}
-    - {learning_rate: 0.0078125, until_global_step: 8000}
-    - {learning_rate: 0.00390625, until_global_step: 16000}
-    - {learning_rate: 0.001953125, until_global_step: 32000}
-    - {learning_rate: 0.0005, until_global_step: 64000}
-    - {learning_rate: 0.00025, until_global_step: 128000}
+    - {learning_rate: 0.250000, until_global_step: 4000}
+    - {learning_rate: 0.125000, until_global_step: 8000}
+    - {learning_rate: 0.062500, until_global_step: 15200}
+    - {learning_rate: 0.031250, until_global_step: 27359}
+    - {learning_rate: 0.015625, until_global_step: 46510}
+    - {learning_rate: 0.007812, until_global_step: 74415}
+    - {learning_rate: 0.003906, until_global_step: 111622}
+    - {learning_rate: 0.001953, until_global_step: 156270}
+    - {learning_rate: 0.000977, until_global_step: 203150}
+    - {learning_rate: 0.000488, until_global_step: 243779}
   shuffle_sentences: true
   shuffle_examples_in_batches: false
   add_summary_modulo: 100

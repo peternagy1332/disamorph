@@ -91,6 +91,7 @@ class Utils(object):
         if self.last_checkpoint_time is not None:
             diff = stop_time - self.last_checkpoint_time
             print("from last checkpoint:", self.__timediff_to_string(diff))
+        else: print()
 
         print(Colors.ENDC, end='')
 

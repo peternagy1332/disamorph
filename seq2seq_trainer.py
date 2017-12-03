@@ -333,8 +333,6 @@ class Seq2SeqTrainer(object):
                     self.__utils.print_elapsed_time()
 
     def train(self, data_processor, sentence_dicts):
-        print('def train(self, dataset):')
-
         try:
             self.__run_epochs(data_processor, sentence_dicts)
 

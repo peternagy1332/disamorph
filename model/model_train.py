@@ -141,7 +141,7 @@ class BuildTrainModel(object):
 
             helper = tf.contrib.seq2seq.TrainingHelper(embedding_input, decoder_inputs_sequence_length, time_major=False)
 
-            projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), use_bias=False)
+            projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), use_bias=False, activation=None)
 
             decoder_initial_state = attention_cell.zero_state(self.__config.data_batch_size, tf.float32)
             decoder_initial_state = decoder_initial_state.clone(cell_state=encoder_state)

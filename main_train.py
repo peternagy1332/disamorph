@@ -1,5 +1,6 @@
 import argparse
-from config import ModelConfiguration
+
+from __init__ import ModelConfiguration
 from data_processing.analyses_processor import AnalysesProcessor
 from data_processing.data_processor import DataProcessor
 from seq2seq_trainer import Seq2SeqTrainer

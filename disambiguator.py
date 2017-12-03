@@ -1,18 +1,19 @@
-import subprocess
-from functools import reduce
-from tempfile import NamedTemporaryFile
-import xml.etree.ElementTree as ET
-
-import tensorflow as tf
-import numpy as np
 import itertools
-
-from operator import itemgetter
 import os
+import subprocess
+import xml.etree.ElementTree as ET
+from functools import reduce
+from operator import itemgetter
+from tempfile import NamedTemporaryFile
 
+import numpy as np
+import tensorflow as tf
+
+from data_processing import DataProcessor
 from data_processing.analyses_processor import AnalysesProcessor
-from data_processing.data_processor import DataProcessor
 from model.model_inference import BuildInferenceModel
+
+
 #import matplotlib.pyplot as plt
 
 
@@ -241,10 +242,7 @@ class Disambiguator(object):
             for window_combinations_probabilities_output_sequences in windows_combinations_probabilities_output_sequences_in_sentence:
                 empty_window = True # If the sentence was too large to fit in the inference input matrix
                 index_by_last_four_analyses = dict()
-                print('\n----')
                 for combination, probability, output_sequence in window_combinations_probabilities_output_sequences:
-
-                    print(" ".join(list(combination)))
 
                     if self.__correct_combinations is not None and combination in self.__correct_combinations:
                         probability = 10000.0

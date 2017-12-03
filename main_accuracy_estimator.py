@@ -1,12 +1,13 @@
 import argparse
-import numpy as np
-import os
 
-from config import ModelConfiguration
+import numpy as np
+
+from __init__ import ModelConfiguration
 from data_processing.analyses_processor import AnalysesProcessor
 from data_processing.data_processor import DataProcessor
 from disambiguator import Disambiguator
 from utils import Utils
+
 
 def estimate_accuracies_on_dataset(model_configuration, disambiguator, dataset):
     print('\tDataset stats:')

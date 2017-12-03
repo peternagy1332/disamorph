@@ -1,9 +1,7 @@
 import argparse
-import operator
 
-from config import ModelConfiguration
+from __init__ import ModelConfiguration
 from disambiguator import Disambiguator
-from utils import Utils
 
 
 def main():
