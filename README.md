@@ -1,4 +1,4 @@
-# Disamorph: A Hungarian morphological disambiguation using sequence-to-sequence neural networks
+# [![Build Status](https://travis-ci.org/peternagy1332/disamorph.svg?branch=master)](https://travis-ci.org/peternagy1332/disamorph) Disamorph: A Hungarian morphological disambiguation using sequence-to-sequence neural networks
 
 ## Usage
 ```bash
