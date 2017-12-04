@@ -6,6 +6,9 @@
 python main_inference.py -m path/to/model/directory
 ```
 
+### Sequence-to-sequence neural network training visualization
+![Character-level training visualization](https://github.com/peternagy1332/disamorph/blob/master/assets/character_level_training_visualization.gif?raw=true "Character-level training visualization")
+
 ### Training in FloydHub
 ``
 floyd run --gpu --env tensorflow-1.3 --data peter.nagy1332/datasets/data/2:data 'ln -s /data /code/data && python main_train.py -dcfg default_configs/floydhub_morpheme_momentum_lstm.yaml -m /output'
