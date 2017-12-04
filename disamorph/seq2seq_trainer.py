@@ -57,8 +57,8 @@ class Seq2SeqTrainer(object):
             global_step = tf.Variable(0, trainable=False, dtype=tf.int32)
             learning_rate = tf.train.piecewise_constant(
                 global_step,
-                list(map(lambda d: d['until_global_step'], self.__config.train_schedule)),
-                list(map(lambda d: d['learning_rate'], self.__config.train_schedule))
+                list(map(lambda d: int(d['until_global_step']), self.__config.train_schedule)),
+                list(map(lambda d: float(d['learning_rate']), self.__config.train_schedule))
             )
 
             optimizer = getattr(tf.train, self.__config.train_loss_optimizer)(learning_rate, **self.__config.train_loss_optimizer_kwargs)

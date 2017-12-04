@@ -11,7 +11,7 @@ inference:
   decoder_type: greedy
   beam_width: 5
 network:
-  embedding_size: 16
+  embedding_size: 4
   hidden_layer_cell_type: GRU
   hidden_layer_cells: 64
   hidden_layer_count: 2
@@ -20,23 +20,23 @@ network:
   max_target_sequence_length: 61
   window_length: 5
   dropout_keep_probability: 0.8
-  activation: leaky_relu
+  activation: tanh
 train:
   visualization: false
   epochs: 100000
   loss_optimizer: AdamOptimizer
 #  loss_optimizer_kwargs: {momentum: 0.5}
   schedule:
-    - {learning_rate: 0.100000, until_global_step: 4000}
-    - {learning_rate: 0.050000, until_global_step: 8000}
-    - {learning_rate: 0.025000, until_global_step: 15200}
-    - {learning_rate: 0.012500, until_global_step: 27359}
-    - {learning_rate: 0.006250, until_global_step: 46510}
-    - {learning_rate: 0.003125, until_global_step: 74415}
-    - {learning_rate: 0.001563, until_global_step: 111622}
-    - {learning_rate: 0.000781, until_global_step: 156270}
-    - {learning_rate: 0.000391, until_global_step: 203150}
-    - {learning_rate: 0.000195, until_global_step: 243779}
+    - {learning_rate: 0.010000, until_global_step: 4000}
+    - {learning_rate: 0.005000, until_global_step: 8000}
+    - {learning_rate: 0.002500, until_global_step: 15200}
+    - {learning_rate: 0.001250, until_global_step: 27359}
+    - {learning_rate: 0.000625, until_global_step: 46510}
+    - {learning_rate: 0.000313, until_global_step: 74415}
+    - {learning_rate: 0.000156, until_global_step: 111622}
+    - {learning_rate: 0.000078, until_global_step: 156270}
+    - {learning_rate: 0.000039, until_global_step: 203150}
+    - {learning_rate: 0.000020, until_global_step: 243779}
   shuffle_sentences: true
   shuffle_examples_in_batches: false
   add_summary_modulo: 100

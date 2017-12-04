@@ -41,10 +41,10 @@ class BuildTrainModel(object):
                                                dtype=tf.float32)
             return embedding_matrix
 
-    def create_rnn(self, half=False):
+    def create_rnn(self, only_half=False):
         cells = []
 
-        layers = self.__config.network_hidden_layer_count if half==False else self.__config.network_hidden_layer_count // 2
+        layers = self.__config.network_hidden_layer_count if only_half == False else self.__config.network_hidden_layer_count // 2
 
         for i in range(layers):
             if self.__config.network_activation is not None:
