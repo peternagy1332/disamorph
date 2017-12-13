@@ -19,7 +19,7 @@ class BuildInferenceModel(object):
 
             embedding_matrix = self.__build_train_model.create_embedding()
 
-            encoder_outputs, encoder_state = self.__build_train_model.create_encoder(embedding_matrix, placeholders.infer_inputs)
+            encoder_outputs, encoder_state = self.__build_train_model.create_encoder(embedding_matrix, placeholders.infer_inputs, tf.estimator.ModeKeys.PREDICT)
 
             logits, output_sequences = self.create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
 
@@ -47,7 +47,7 @@ class BuildInferenceModel(object):
 
     def create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders):
         with tf.variable_scope('decoder'):
-            decoder_rnn = self.__build_train_model.create_rnn()
+            decoder_rnn = self.__build_train_model.create_rnn(False, tf.estimator.ModeKeys.PREDICT)
 
             projection_layer = layers_core.Dense(len(self.__analyses_processor.inverse_vocabulary), activation=tf.nn.softmax, use_bias=False)
 

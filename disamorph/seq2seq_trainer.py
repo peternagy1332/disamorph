@@ -16,7 +16,7 @@ class Seq2SeqTrainer(object):
         
         build_train_model = BuildTrainModel(model_configuration, analyses_processor)
         
-        self.__train_model = build_train_model.create_model()
+        self.__train_model = build_train_model.create_model(build_train_model.graph, tf.estimator.ModeKeys.TRAIN)
         self.__train_session = tf.Session(graph=self.__train_model.graph)
 
         build_validation_model = BuildValidationModel(model_configuration, analyses_processor)

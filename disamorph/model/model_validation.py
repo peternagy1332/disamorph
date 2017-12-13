@@ -13,7 +13,7 @@ class BuildValidationModel(object):
         self.__graph = tf.Graph()
 
     def create_model(self):
-        self.__train_model = self.__build_train_model.create_model(self.__graph)
+        self.__train_model = self.__build_train_model.create_model(self.__graph, tf.estimator.ModeKeys.PREDICT)
 
         projector_config, merged_summary, loss, accuracy, a_global_step, loss_sum, accuracy_sum, run_options, run_metadata = self.__create_validation_summary_variables()
 

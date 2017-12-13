@@ -8,21 +8,18 @@ class BuildTrainModel(object):
         self.__config = model_configuration
         self.__analyses_processor = analyses_processor
 
-        self.__graph = tf.Graph()
+        self.graph = tf.Graph()
 
-    def create_model(self, graph = None):
-        # For validation model
-        if graph is None:
-            graph = self.__graph
-
+    def create_model(self, graph, mode):
+        """graph: either train or validation graph"""
         with graph.as_default():
             placeholders = self.create_placeholders()
 
             embedding_matrix = self.create_embedding()
 
-            encoder_outputs, encoder_state = self.create_encoder(embedding_matrix, placeholders.encoder_inputs)
+            encoder_outputs, encoder_state = self.create_encoder(embedding_matrix, placeholders.encoder_inputs, mode)
 
-            logits, output_sequences = self.create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders)
+            logits, output_sequences = self.create_decoder(embedding_matrix, encoder_outputs, encoder_state, placeholders, mode)
 
             Model = namedtuple('Model', ['placeholders', 'logits', 'output_sequences', 'embedding_matrix', 'graph'])
 
@@ -41,7 +38,7 @@ class BuildTrainModel(object):
                                                dtype=tf.float32)
             return embedding_matrix
 
-    def create_rnn(self, only_half=False):
+    def create_rnn(self, only_half, mode):
         cells = []
 
         layers = self.__config.network_hidden_layer_count if only_half == False else self.__config.network_hidden_layer_count // 2
@@ -57,11 +54,10 @@ class BuildTrainModel(object):
             elif self.__config.network_hidden_layer_cell_type == 'GRU':
                 cell = tf.nn.rnn_cell.GRUCell(self.__config.network_hidden_layer_cells, activation=activation)
 
-            if self.__config.network_dropout_keep_probability is not None:
+            if self.__config.network_dropout_keep_probability is not None and mode == tf.estimator.ModeKeys.TRAIN:
                 cell = tf.contrib.rnn.DropoutWrapper(cell, input_keep_prob=self.__config.network_dropout_keep_probability)
 
             cells.append(cell)
-
 
         return tf.nn.rnn_cell.MultiRNNCell(cells)
 
@@ -90,11 +86,11 @@ class BuildTrainModel(object):
                 decoder_outputs=decoder_outputs
             )
 
-    def create_encoder(self, embedding_matrix, encoder_inputs):
+    def create_encoder(self, embedding_matrix, encoder_inputs, mode):
         with tf.variable_scope('encoder'):
 
-            forward_cells = self.create_rnn(True)
-            backward_cells = self.create_rnn(True)
+            forward_cells = self.create_rnn(True, mode)
+            backward_cells = self.create_rnn(True, mode)
 
             embedding_input = tf.nn.embedding_lookup(embedding_matrix, encoder_inputs)
 
@@ -120,9 +116,9 @@ class BuildTrainModel(object):
 
             return encoder_outputs, encoder_state
 
-    def create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders):
+    def create_decoder(self, embedding_matrix, encoder_outputs, encoder_state, placeholders, mode):
         with tf.variable_scope('decoder'):
-            decoder_rnn = self.create_rnn(False)
+            decoder_rnn = self.create_rnn(False, mode)
 
             decoder_inputs_sequence_length = tf.count_nonzero(placeholders.decoder_inputs, axis=1, dtype=tf.int32)
 

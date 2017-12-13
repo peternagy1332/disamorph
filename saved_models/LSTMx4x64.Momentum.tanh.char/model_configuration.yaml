@@ -1,5 +1,5 @@
 data:
-  batch_size: 256
+  batch_size: 64
   example_resolution: character
   random_seed: 448
   train_dataset: data/szeged-judit/*
@@ -7,54 +7,59 @@ data:
   train_ratio: 0.8
   validation_ratio: 0.1
 inference:
-  beam_width: 3
+  beam_width: 5
   decoder_type: greedy
   transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
 network:
-  activation: null
+  activation: tanh
   dropout_keep_probability: 0.8
-  embedding_size: 8
+  embedding_size: 32
   hidden_layer_cell_type: LSTM
   hidden_layer_cells: 64
-  hidden_layer_count: 2
+  hidden_layer_count: 4
   max_gradient_norm: 5
   max_source_sequence_length: 109
   max_target_sequence_length: 61
   window_length: 5
 train:
-  add_summary_modulo: 100
+  add_summary_modulo: 512
   epochs: 100000
   loss_optimizer: MomentumOptimizer
   loss_optimizer_kwargs:
     momentum: 0.5
   schedule:
-  - learning_rate: 1.0
-    until_global_step: 1000
-  - learning_rate: 0.5
-    until_global_step: 2000
-  - learning_rate: 0.25
+  - learning_rate: 1
     until_global_step: 4000
+  - learning_rate: 0.5
+    until_global_step: 8000
+  - learning_rate: 0.25
+    until_global_step: 15466
   - learning_rate: 0.125
-    until_global_step: 5000
+    until_global_step: 28869
   - learning_rate: 0.0625
-    until_global_step: 16000
+    until_global_step: 51964
   - learning_rate: 0.03125
-    until_global_step: 32000
+    until_global_step: 90070
   - learning_rate: 0.015625
-    until_global_step: 64000
+    until_global_step: 150116
   - learning_rate: 0.0078125
-    until_global_step: 128000
+    until_global_step: 240185
   - learning_rate: 0.00390625
-    until_global_step: 256000
-  - learning_rate: 0.001953125
-    until_global_step: 512000
-  - learning_rate: 0.0005
-    until_global_step: 1024000
-  - learning_rate: 0.00025
-    until_global_step: 2048000
-  - learning_rate: 0.000125
-    until_global_step: 4048000
+    until_global_step: 368283
+  - learning_rate: 0.00195312
+    until_global_step: 540148
+  - learning_rate: 0.000976562
+    until_global_step: 756207
+  - learning_rate: 0.000488281
+    until_global_step: 1008276
+  - learning_rate: 0.000244141
+    until_global_step: 1277149
+  - learning_rate: 0.00012207
+    until_global_step: 1532578
+  - learning_rate: 6.10352e-05
+    until_global_step: 1736921
   shuffle_examples_in_batches: false
   shuffle_sentences: true
-  validation_add_summary_modulo: 100
+  validation_add_summary_modulo: 512
   validation_modulo: 1
+  visualization: false

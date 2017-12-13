@@ -1,0 +1,75 @@
+data:
+  batch_size: 32
+  example_resolution: morpheme
+  random_seed: 448
+  train_dataset: data/szeged-judit/*
+  train_matrices: data/train_matrices
+  train_ratio: 0.8
+  validation_ratio: 0.1
+inference:
+  beam_width: 5
+  decoder_type: greedy
+  transducer_path: /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol
+network:
+  activation: tanh
+  dropout_keep_probability: 0.8
+  embedding_size: 32
+  hidden_layer_cell_type: LSTM
+  hidden_layer_cells: 64
+  hidden_layer_count: 4
+  max_gradient_norm: 5
+  max_source_sequence_length: 73
+  max_target_sequence_length: 53
+  window_length: 5
+train:
+  add_summary_modulo: 100
+  epochs: 100000
+  loss_optimizer: MomentumOptimizer
+  loss_optimizer_kwargs:
+    momentum: 0.5
+  schedule:
+  - learning_rate: 1
+    until_global_step: 4000
+  - learning_rate: 0.5
+    until_global_step: 8000
+  - learning_rate: 0.25
+    until_global_step: 15600
+  - learning_rate: 0.125
+    until_global_step: 29640
+  - learning_rate: 0.0625
+    until_global_step: 54833
+  - learning_rate: 0.03125
+    until_global_step: 98699
+  - learning_rate: 0.015625
+    until_global_step: 172723
+  - learning_rate: 0.0078125
+    until_global_step: 293629
+  - learning_rate: 0.00390625
+    until_global_step: 484487
+  - learning_rate: 0.001953125
+    until_global_step: 775179
+  - learning_rate: 0.0009765625
+    until_global_step: 1201527
+  - learning_rate: 0.00048828125
+    until_global_step: 1802290
+  - learning_rate: 0.00024414062
+    until_global_step: 2613320
+  - learning_rate: 0.00012207031
+    until_global_step: 3658647
+  - learning_rate: 6.1035156e-05
+    until_global_step: 4939173
+  - learning_rate: 3.0517578e-05
+    until_global_step: 6420924
+  - learning_rate: 1.5258789e-05
+    until_global_step: 8026154
+  - learning_rate: 7.6293945e-06
+    until_global_step: 9631384
+  - learning_rate: 3.8146973e-06
+    until_global_step: 11076091
+  - learning_rate: 1.9073486e-06
+    until_global_step: 12183700
+  shuffle_examples_in_batches: false
+  shuffle_sentences: true
+  validation_add_summary_modulo: 100
+  validation_modulo: 1
+  visualization: false
