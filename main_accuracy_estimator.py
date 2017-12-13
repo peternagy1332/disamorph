@@ -78,7 +78,7 @@ def estimate_accuracies_on_dataset(model_configuration, disambiguator, dataset):
             print('\tTotal accuracies: min - %-15g max - %-15g avg - %-15g' % (min(batch_accuracies), max(batch_accuracies), (sum(batch_accuracies)/len(batch_accuracies))))
 
 def main():
-    parser = argparse.ArgumentParser(description='Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence neural networks')
+    parser = argparse.ArgumentParser(description='Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence neural networks.')
     parser.add_argument('-m', '--model-directory', required=True, help='Path to the model directory.')
     parser.add_argument('-t', '--use-train-model', default=False, action='store_true', help='Whether to use the train instead of the validation model.')
     args = parser.parse_args()

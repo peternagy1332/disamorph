@@ -47,7 +47,7 @@ $ python main_inference.py -h
 usage: main_inference.py [-h] -m MODEL_DIRECTORY [-t]
 
 Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence
-neural networks
+neural networks.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -87,7 +87,7 @@ $ python main_evaluation.py -h
 usage: main_evaluation.py [-h] -m MODEL_DIRECTORY [-t]
 
 Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence
-neural networks
+neural networks.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -104,7 +104,7 @@ $ python main_accuracy_estimator.py -h
 usage: main_accuracy_estimator.py [-h] -m MODEL_DIRECTORY [-t]
 
 Disamorph: A Hungarian morphological disambiguator using sequence-to-sequence
-neural networks
+neural networks.
 
 optional arguments:
   -h, --help            show this help message and exit
