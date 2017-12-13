@@ -105,6 +105,7 @@ class Disambiguator(object):
             word_in_sentence_id += 1
 
     def feed_into_network(self, combinations_matrix):
+        """combinations_matrix: numpy matrix with shape (self.__config.data_batch_size, self.__config.network_max_source_sequence_length)"""
         scores, all_output_sequences = self.__inference_session.run(
             [self.__inference_model.logits, self.__inference_model.output_sequences],
             feed_dict={
@@ -194,7 +195,9 @@ class Disambiguator(object):
 
                 yield windows_combinations_in_sentence, probabilities, output_sequences
 
-    def corpus_to_tokenized_sentences(self, corpus):
+    @staticmethod
+    def corpus_to_tokenized_sentences(corpus):
+        """corpus: 'My name is Copus. And yours?'; Returns: [['My', 'name', 'is', 'Corpus', '.'], ['And', 'yours', '?']]"""
         corpus_temp_file = NamedTemporaryFile(delete=False)
         corpus_temp_file.write(corpus.encode())
         corpus_temp_file.close()
@@ -228,6 +231,8 @@ class Disambiguator(object):
         return tokenized_sentences
 
     def disambiguate_tokenized_sentences(self, tokenized_sentences):
+        """tokenized_sentences: output of corpus_to_tokenized_sentences;
+        Returns: [[(token, (disambiguated_analysis, log_probability, network_output)),...],...]"""
         flattened_corpus_words_with_SOS_before_sentences = []
         for tokenized_sentence in tokenized_sentences:
             flattened_corpus_words_with_SOS_before_sentences += [self.analyses_processor.inverse_vocabulary[self.__config.marker_start_of_sentence]] * (self.__config.network_window_length - 1) + tokenized_sentence
@@ -241,8 +246,8 @@ class Disambiguator(object):
         return disambiguated_analyses_for_sentences
 
     def disambiguated_analyses_by_sentence_generator(self, corpus_words):
-        """Viterbi. Doesn't keep <SOS>. Yields only disambiguated analyses in a list by sentence."""
-        for windows_combinations_probabilities_output_sequences_in_sentence, all_output_sequences in self.get_windows_combinations_probabilities_output_sequences_by_sentence_generator(corpus_words):
+        """corpus_words: tokens in the corpus; Yields: disambiguated analyses and network output sequences for each sentence"""
+        for windows_combinations_probabilities_output_sequences_in_sentence, all_output_sequences in self.__get_windows_combinations_probabilities_output_sequences_by_sentence_generator(corpus_words):
             viterbi_lists = []
 
             for window_combinations_probabilities_output_sequences in windows_combinations_probabilities_output_sequences_in_sentence:
@@ -282,7 +287,7 @@ class Disambiguator(object):
             disambiguated_analyses = list(map(lambda cpo_tuple: (cpo_tuple[0][-1], cpo_tuple[1], cpo_tuple[2]), reversed(disambiguated_combination_probability_output_sequence_tuples)))
             yield disambiguated_analyses, all_output_sequences
 
-    def get_windows_combinations_probabilities_output_sequences_by_sentence_generator(self, corpus_words):
+    def __get_windows_combinations_probabilities_output_sequences_by_sentence_generator(self, corpus_words):
         for windows_combinations_in_sentence, probabilities_in_sentence, all_output_sequences in self.__corpus_words_to_windows_and_probabilities(corpus_words):
             windows_combinations_probabilities_output_sequences = []
 
@@ -314,13 +319,13 @@ class Disambiguator(object):
             # print('-----')
             yield windows_combinations_probabilities_output_sequences, all_output_sequences
 
-    def evaluate_model(self, sentence_dicts, printAnalyses = False):
-        print('def evaluate_model(self, sentence_dicts, printAnalyses = False):')
+    def evaluate_model(self, sentence_dicts, print_analyses = False):
+        print('def evaluate_model(self, sentence_dicts, print_analyses = False):')
         disambiguation_accuracies = []
         print('\t#{sentences}: ', len(sentence_dicts))
         try:
             for sentence_id, sentence_dict in enumerate(sentence_dicts):
-                if printAnalyses:
+                if print_analyses:
                     print('\t\tSentence ', (sentence_id+1),'/', len(sentence_dicts))
                 words_to_disambiguate = sentence_dict['word']  # Including <SOS>
 
@@ -337,14 +342,14 @@ class Disambiguator(object):
                 disambiguated_sentence, all_output_sequences = next(self.disambiguated_analyses_by_sentence_generator(words_to_disambiguate))
 
                 # Header print
-                if printAnalyses:
+                if print_analyses:
                     print('\t%-40s| %-40s| %-10s| %-s' % ("Correct analyses", "Disambiguated analyses", "P", "Network output"))
                     print('\t'+ ('-' * 120))
 
                 # Disambiguation accuracy
                 matching_analyses = 0
                 for i, apo_tuple in enumerate(disambiguated_sentence):
-                    if printAnalyses:
+                    if print_analyses:
                         print('\t%-40s| %-40s| %-10.4g| %-s' % (correct_analyses[i], apo_tuple[0], apo_tuple[1], apo_tuple[2]))
                     if apo_tuple[0] == correct_analyses[i]:
                         matching_analyses += 1
@@ -352,8 +357,13 @@ class Disambiguator(object):
                 disambiguation_accuracy = 100 * matching_analyses / len(disambiguated_sentence)
                 disambiguation_accuracies.append(disambiguation_accuracy)
 
+                if disambiguation_accuracy>97.5:
+                    for i, apo_tuple in enumerate(disambiguated_sentence):
+                        print('\t%-40s| %-40s| %-10.4g| %-s' % (correct_analyses[i], apo_tuple[0], apo_tuple[1], apo_tuple[2]))
+
+
                 # Sentence result
-                if printAnalyses:
+                if print_analyses:
                     print('\t' + ('-' * 120))
                     print('\t>> Disambiguation accuracy: %-6.2f\n' % (disambiguation_accuracy))
                 else:
@@ -373,6 +383,11 @@ class Disambiguator(object):
             #
             # plt.savefig('inference_accuracy.png')
             print('Interrupted by user.')
-        print('>>>> Disambiguation accuracies\t-\tmin: %-12.2f max: %-12.2f avg: %-12.2f' % (
-            min(disambiguation_accuracies), max(disambiguation_accuracies), sum(disambiguation_accuracies) / len(disambiguation_accuracies)))
+
+        if len(disambiguation_accuracies)>0:
+            print('Writing output CSV...')
+            with open('disambiguation_accuracies_output_'+self.__config.data_example_resolution+'.csv', 'w') as f:
+                f.writelines(list(map(lambda l: str(l) + os.linesep, disambiguation_accuracies)))
+            print('>>>> Disambiguation accuracies\t-\tmin: %-12.2f max: %-12.2f avg: %-12.2f' % (
+                min(disambiguation_accuracies), max(disambiguation_accuracies), sum(disambiguation_accuracies) / len(disambiguation_accuracies)))
         print('=' * 100)
