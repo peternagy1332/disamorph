@@ -6,6 +6,16 @@
 ```bash
 cat your_corpus | python main_inference.py -m saved_models/your_model_directory
 ```
+##### Example
+```bash
+$ echo "Próbáld meg még egyszer." | python main_inference.py -m saved_models/LSTMx4x64.Momentum.tanh.morp
+Próbáld     próbál[/V]d[Sbjv.Def.2Sg]
+meg     meg[/Prev]
+még     még[/Adv]
+egyszer     egy[/Num]szer[_Mlt-Iter/Adv]
+.   .
+```
+Note that the delimiter is a tab (`\t`) character in each line.
 
 #### Training
 ##### New model
@@ -107,12 +117,9 @@ optional arguments:
 ```
 
 #### Getting started
-##### Tools
-- Helsinki Finite-State Technology: https://github.com/hfst/hfst
-- emMorph (Humor) Hungarian morphological analyzer: https://github.com/dlt-rilmta/emMorph
-
-##### Installing requirements and setup as a package
-1. Please install all the tools listed above.
+1. Please install all the following tools:
+    - Helsinki Finite-State Technology: https://github.com/hfst/hfst
+    - emMorph (Humor) Hungarian morphological analyser: https://github.com/dlt-rilmta/emMorph
 2. Make sure that `transducer_path` is set correctly in your `model_configuration.yaml` in your model's directory.
 3. Install the Python requirements: `pip install -r requirements.txt`
 4. Optionally, if you wish to use the Python API of this project, install it as a package: `python setup.py install`
