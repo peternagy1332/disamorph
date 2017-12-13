@@ -106,11 +106,16 @@ optional arguments:
 
 ```
 
-#### Requirements
+#### Getting started
+##### Tools
 - Helsinki Finite-State Technology: https://github.com/hfst/hfst
 - emMorph (Humor) Hungarian morphological analyzer: https://github.com/dlt-rilmta/emMorph
-- Python 3.6+
-  - See requirements.txt
+
+##### Installing requirements and setup as a package
+```bash
+pip install -r requirements.txt
+python setup.py install
+```
 
 ### Visualization capabilities
 #### Training visualization
