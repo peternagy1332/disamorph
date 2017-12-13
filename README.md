@@ -112,10 +112,10 @@ optional arguments:
 - emMorph (Humor) Hungarian morphological analyzer: https://github.com/dlt-rilmta/emMorph
 
 ##### Installing requirements and setup as a package
-```bash
-pip install -r requirements.txt
-python setup.py install
-```
+1. Please install all the tools listed above.
+2. Make sure that `transducer_path` is set correctly in your `model_configuration.yaml` in your model's directory.
+3. Install the Python requirements: `pip install -r requirements.txt`
+4. Optionally, if you wish to use the Python API of this project, install it as a package: `python setup.py install`
 
 ### Visualization capabilities
 #### Training visualization
