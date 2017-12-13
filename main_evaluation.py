@@ -17,7 +17,7 @@ def main():
 
     utils = Utils(model_configuration)
     utils.start_stopwatch()
-    utils.redirect_stdout('main-evaluation')
+    #utils.redirect_stdout('main-evaluation')
 
     model_configuration.printConfig()
 
@@ -31,13 +31,13 @@ def main():
     # Evaluating model
     disambiguator = Disambiguator(model_configuration, analyses_processor)
 
-    print('Evaluating model on train dataset...')
-    disambiguator.evaluate_model(train_sentence_dicts[:1000], False)
-    utils.print_elapsed_time()
-
-    print('Evaluating model on validation dataset...')
-    disambiguator.evaluate_model(validation_sentence_dicts, False)
-    utils.print_elapsed_time()
+    # print('Evaluating model on train dataset...')
+    # disambiguator.evaluate_model(train_sentence_dicts[:1000], False)
+    # utils.print_elapsed_time()
+    #
+    # print('Evaluating model on validation dataset...')
+    # disambiguator.evaluate_model(validation_sentence_dicts, False)
+    # utils.print_elapsed_time()
 
     print('Evaluating model on test dataset...')
     disambiguator.evaluate_model(test_sentence_dicts, False)
