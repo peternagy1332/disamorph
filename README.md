@@ -136,49 +136,49 @@ In these table I present the key-value pairs of the configuration YAML files wit
 #### Group: data
 | Key                                    | Example value            | Explanation                           |
 -----------------------------------------|--------------------------|---------------------------------------|
-| save_train_matrices  | false |
-| train_dataset | data/szeged-judit/* |  |
-| train_matrices | data/train_matrices | |
-| random_seed | 448 |  |
-| example_resolution | character |  |
-| train_ratio | 0.8 |  |
-| validation_ratio | 0.1 |  |
-| batch_size | 256 |  |
+| save_train_matrices  | true | Cache preprocessed corpus matrices to the filesystem. Default: true
+| train_dataset | data/szeged-judit/* | Szeged Corpus. Please request these files on demand.
+| train_matrices | data/train_matrices | Where to save train matrices.
+| random_seed | 448 |  To make random number generation deterministic and experiments reproducible.
+| example_resolution | character | Is it a `character` or `morpheme`-level model?
+| train_ratio | 0.8 |  First 80% of sentences are used for training.
+| validation_ratio | 0.1 |  First 10% of sentences after the first 80% is for validation. The remaining is the test dataset.
+| batch_size | 256 |  For all models.
 
 #### Group: inference
 | Key                                    | Example value            | Explanation                           |
 -----------------------------------------|--------------------------|---------------------------------------|
-| transducer_path | /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol |  |
-| decoder_type | greedy |  |
-| beam_width | 5 |  |
+| transducer_path | /userhome/student/peterng/programs/emMorph/hfst/hu.hfstol |  See requirements.
+| decoder_type | greedy |  Or `beam_decoder`.
+| beam_width | 5 |  Only needed when `decoder_type` is `beam_decoder`.
 
 #### Group: network
 | Key                                    | Example value            | Explanation                           |
 -----------------------------------------|--------------------------|---------------------------------------|
-| embedding_size | 8 |  |
-| hidden_layer_cell_type | LSTM |  |
-| hidden_layer_cells | 64 |  |
-| hidden_layer_count | 2 |  |
-| max_gradient_norm | 5 |  |
-| max_source_sequence_length | 109 |  |
-| max_target_sequence_length | 61 |  |
-| window_length | 5 |  |
-| dropout_keep_probability | 0.8 |  |
-| activation | null |  |
+| embedding_size | 8 |  Word embedding vector lengths.
+| hidden_layer_cell_type | LSTM |  Or `GRU`. Used for both encoder and decoder networks in all models.
+| hidden_layer_cells | 64 |  How many cells are in a layer?
+| hidden_layer_count | 2 |  Should be an even number because of the bidirectional encoder.
+| max_gradient_norm | 5 |  Maximum gradient clipping.
+| max_source_sequence_length | 109 | The maximum real sequence length in all train matrices. See the data preprocessor class to find this out.
+| max_target_sequence_length | 61 |  Same as `max_source_sequence_length`.
+| window_length | 5 |  Sliding window size that moves one-word right from the beginning of each sentence.
+| dropout_keep_probability | 0.8 |  Note that this is not in inverse-notation!
+| activation | null |  Anything on `tf.nn`. E.g. `tanh`, `sigmoid`, `relu`, `leaky_relu`.
 
 #### Group: train
 | Key                                    | Example value            | Explanation                           |
 -----------------------------------------|--------------------------|---------------------------------------|
-| visualization | false |  |
-| epochs | 100000 |  |
-| loss_optimizer | MomentumOptimizer |  |
-| loss_optimizer_kwargs | {momentum: 0.5} |
-| schedule | <p>- {learning_rate: 1.0,    until_global_step: 16000}<br/>- {learning_rate: 0.5,    until_global_step: 64000}<br/>- {learning_rate: 0.25,   until_global_step: 128000}<br/>- {learning_rate: 0.125,  until_global_step: 256000}<br/>- {learning_rate: 0.0625, until_global_step: 512000}<br/>- {learning_rate: 0.03125, until_global_step: 1024000}<br/>- {learning_rate: 0.015625, until_global_step: 2048000}<br/>- {learning_rate: 0.0078125, until_global_step: 4096000}<br/>- {learning_rate: 0.00390625, until_global_step: 8192000}<br/>- {learning_rate: 0.001953125, until_global_step: 16384000}<br/></p>
-| shuffle_sentences | true |  |
-| shuffle_examples_in_batches | false |  |
-| add_summary_modulo | 100 |  |
-| validation_add_summary_modulo | 100 |  |
-| validation_modulo | 1 |  |
+| visualization | false |  If true, train visualisation is turned on, as seen in the first GIF. I used this only for test purposes with `data_batch_size=1`
+| epochs | 100000 |  # of training epochs.
+| loss_optimizer | MomentumOptimizer |  Anything on `tf.train`. E.g. `AdamOptimizer`, `RMSPropOptimizer`, ...
+| loss_optimizer_kwargs | {momentum: 0.5} | Additional kwargs for the optimizer if needed. Default: {}
+| schedule | <p>- {learning_rate: 1.0,    until_global_step: 16000}<br/>- {learning_rate: 0.5,    until_global_step: 64000}<br/>- {learning_rate: 0.25,   until_global_step: 128000}<br/>- {learning_rate: 0.125,  until_global_step: 256000}<br/>- {learning_rate: 0.0625, until_global_step: 512000}<br/>- {learning_rate: 0.03125, until_global_step: 1024000}<br/>- {learning_rate: 0.015625, until_global_step: 2048000}<br/>- {learning_rate: 0.0078125, until_global_step: 4096000}<br/>- {learning_rate: 0.00390625, until_global_step: 8192000}<br/>- {learning_rate: 0.001953125, until_global_step: 16384000}<br/></p> | Decaying learning rate. See `stats/schedule_generator.py`.
+| shuffle_sentences | true |  Only train dataset.
+| shuffle_examples_in_batches | false | Does not really make sense, since the order of examples matters.
+| add_summary_modulo | 100 |  Log at every 100th training step.
+| validation_add_summary_modulo | 100 |  Log every 100th validation step.
+| validation_modulo | 1 |  Validate after every epoch.
 
 
 ### Used shell commands during data preprocessing of Szeged Korpusz
