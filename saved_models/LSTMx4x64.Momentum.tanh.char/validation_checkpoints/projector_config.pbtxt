@@ -1,0 +1,4 @@
+embeddings {
+  tensor_name: "embedding/embedding_matrix:0"
+  metadata_path: "/userhome/student/peterng/projects/disamorph/disamorph/../data/metadata_character.tsv"
+}

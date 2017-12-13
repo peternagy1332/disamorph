@@ -1,0 +1,6 @@
+model_checkpoint_path: "saved_model.ckpt-694080"
+all_model_checkpoint_paths: "saved_model.ckpt-616960"
+all_model_checkpoint_paths: "../validation_checkpoints/saved_model.ckpt-616960"
+all_model_checkpoint_paths: "saved_model.ckpt-655520"
+all_model_checkpoint_paths: "../validation_checkpoints/saved_model.ckpt-655520"
+all_model_checkpoint_paths: "saved_model.ckpt-694080"

@@ -1,0 +1,6 @@
+model_checkpoint_path: "saved_model.ckpt-655520"
+all_model_checkpoint_paths: "saved_model.ckpt-578400"
+all_model_checkpoint_paths: "../train_checkpoints/saved_model.ckpt-616960"
+all_model_checkpoint_paths: "saved_model.ckpt-616960"
+all_model_checkpoint_paths: "../train_checkpoints/saved_model.ckpt-655520"
+all_model_checkpoint_paths: "saved_model.ckpt-655520"
