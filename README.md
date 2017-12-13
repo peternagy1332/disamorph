@@ -4,7 +4,7 @@
 ### Usage
 #### Inference
 ```bash
-cat your_corpus | python main_inference.py -m saved_models/your_model_directory
+cat your_corpus | python main_inference.py -m saved_models/your_model_directory [-t]
 ```
 ##### Example
 ```bash
