@@ -211,6 +211,9 @@ cat * | grep -e '^.' | cut -f1 | sort | uniq | hfst-lookup --pipe-mode=input --c
 cat * | grep -e '^.' | cut -f1 | hfst-lookup --pipe-mode=input --cascade=composition --xfst=print-pairs --xfst=print-space -s ../../../../programs/emMorph/hfst/hu.hfstol | grep -e '.' | wc -l
 ```
 
+### Similar projects
+- https://github.com/nagyniki017/morph_disamb
+
 ### BibTex
 ```bibtex
 @thesis{nagyp2017,
